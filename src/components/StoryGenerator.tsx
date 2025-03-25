@@ -9,12 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen } from "lucide-react";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse } from "@/lib/gemini";
+import { generateImage, PixlrResponse } from "@/lib/pixlr";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
+const DEFAULT_PIXLR_KEY = "92b0e3fac21b463682ec42c523173401";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
@@ -30,8 +32,11 @@ const themes = [
 
 const StoryGenerator: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(DEFAULT_API_KEY);
+  const [pixlrApiKey, setPixlrApiKey] = useState<string>(DEFAULT_PIXLR_KEY);
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [useCustomApiKey, setUseCustomApiKey] = useState(false);
+  const [useCustomPixlrKey, setUseCustomPixlrKey] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -39,6 +44,8 @@ const StoryGenerator: React.FC = () => {
     length: "medium"
   });
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("create");
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -68,6 +75,7 @@ const StoryGenerator: React.FC = () => {
           title: "Story Generated",
           description: `"${story.title}" has been created successfully`,
         });
+        setActiveTab("read");
       }
     } catch (error) {
       console.error("Failed to generate story:", error);
@@ -78,6 +86,62 @@ const StoryGenerator: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!generatedStory) {
+      toast({
+        title: "No Story Found",
+        description: "Please generate a story first before creating an image",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const pixlrKey = useCustomPixlrKey ? pixlrApiKey : DEFAULT_PIXLR_KEY;
+    
+    if (!pixlrKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter a Pixlr API key to generate an image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImageLoading(true);
+    try {
+      // Create a prompt based on the story title and mythology
+      const imagePrompt = `${generatedStory.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
+      
+      const result = await generateImage({
+        prompt: imagePrompt,
+        apiKey: pixlrKey
+      });
+      
+      if (result.error) {
+        toast({
+          title: "Image Generation Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.url) {
+        setGeneratedImage(result.url);
+        toast({
+          title: "Image Generated",
+          description: "Your mythological scene has been illustrated",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to generate image:", error);
+      toast({
+        title: "Image Generation Failed",
+        description: "There was an error generating your image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -93,7 +157,7 @@ const StoryGenerator: React.FC = () => {
         </CardDescription>
       </CardHeader>
       
-      <Tabs defaultValue="create" className="w-full">
+      <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 mx-6 my-2">
           <TabsTrigger value="create">Create Story</TabsTrigger>
           <TabsTrigger value="read">Read Story</TabsTrigger>
@@ -195,6 +259,34 @@ const StoryGenerator: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            <div className="flex justify-end">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="use-pixlr-key"
+                  checked={useCustomPixlrKey}
+                  onCheckedChange={setUseCustomPixlrKey}
+                />
+                <Label htmlFor="use-pixlr-key">Use Custom Pixlr Key</Label>
+              </div>
+            </div>
+            
+            {useCustomPixlrKey && (
+              <div className="space-y-2">
+                <Label htmlFor="pixlr-key">Pixlr API Key</Label>
+                <Input
+                  id="pixlr-key"
+                  type="password"
+                  placeholder="Enter your Pixlr API key"
+                  value={pixlrApiKey}
+                  onChange={(e) => setPixlrApiKey(e.target.value)}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is only used in your browser and not stored on our servers
+                </p>
+              </div>
+            )}
           </CardContent>
           
           <CardFooter>
@@ -229,6 +321,42 @@ const StoryGenerator: React.FC = () => {
                 <div className="border-b pb-2">
                   <h3 className="text-xl font-mythical text-primary">{generatedStory.title}</h3>
                 </div>
+                
+                {generatedImage ? (
+                  <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6">
+                    <img 
+                      src={generatedImage} 
+                      alt={generatedStory.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-2 right-2">
+                      <p className="text-xs opacity-70 bg-black/30 text-white px-2 py-1 rounded-md">
+                        Generated with Pixlr AI
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-center mb-4">
+                    <Button
+                      onClick={handleGenerateImage}
+                      disabled={imageLoading}
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                    >
+                      {imageLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Image...
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="mr-2 h-4 w-4" />
+                          Generate Scene Image
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
                 
                 <ScrollArea className="h-[300px] rounded-md">
                   <div className="prose dark:prose-invert max-w-none">
