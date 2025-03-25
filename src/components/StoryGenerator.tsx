@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen, Image as ImageIcon } from "lucide-react";
-import { generateStory, StoryPrompt, StoryResponse } from "@/lib/gemini";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare } from "lucide-react";
+import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, PixlrResponse } from "@/lib/pixlr";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
 const DEFAULT_PIXLR_KEY = "92b0e3fac21b463682ec42c523173401";
@@ -46,6 +47,8 @@ const StoryGenerator: React.FC = () => {
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("create");
+  const [customImagePrompt, setCustomImagePrompt] = useState<string>("");
+  const [showArcsView, setShowArcsView] = useState<boolean>(true);
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -63,6 +66,9 @@ const StoryGenerator: React.FC = () => {
     try {
       const story = await generateStory(keyToUse, storyPrompt);
       setGeneratedStory(story);
+      // Reset image when generating new story
+      setGeneratedImage(null);
+      setCustomImagePrompt("");
       
       if (story.error) {
         toast({
@@ -112,8 +118,10 @@ const StoryGenerator: React.FC = () => {
 
     setImageLoading(true);
     try {
-      // Create a prompt based on the story title and mythology
-      const imagePrompt = `${generatedStory.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
+      // Use custom prompt if provided, otherwise create one based on the story
+      const imagePrompt = customImagePrompt.trim() !== "" 
+        ? customImagePrompt
+        : `${generatedStory.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
       
       const result = await generateImage({
         prompt: imagePrompt,
@@ -143,6 +151,37 @@ const StoryGenerator: React.FC = () => {
     } finally {
       setImageLoading(false);
     }
+  };
+
+  const renderStoryContent = () => {
+    if (!generatedStory) return null;
+
+    if (showArcsView && generatedStory.storyArcs && generatedStory.storyArcs.length > 0) {
+      return (
+        <Accordion type="single" collapsible className="w-full">
+          {generatedStory.storyArcs.map((arc, index) => (
+            <AccordionItem key={index} value={`arc-${index}`}>
+              <AccordionTrigger className="text-md font-medium hover:text-primary">
+                {arc.title}
+              </AccordionTrigger>
+              <AccordionContent className="prose dark:prose-invert max-w-none">
+                {arc.content.split('\n\n').map((paragraph, i) => (
+                  <p key={i} className="mb-4">{paragraph}</p>
+                ))}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      );
+    }
+
+    return (
+      <div className="prose dark:prose-invert max-w-none">
+        {generatedStory.story.split('\n\n').map((paragraph, i) => (
+          <p key={i} className="mb-4">{paragraph}</p>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -322,6 +361,7 @@ const StoryGenerator: React.FC = () => {
                   <h3 className="text-xl font-mythical text-primary">{generatedStory.title}</h3>
                 </div>
                 
+                {/* Image Section */}
                 {generatedImage ? (
                   <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6">
                     <img 
@@ -336,34 +376,61 @@ const StoryGenerator: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex justify-center mb-4">
-                    <Button
-                      onClick={handleGenerateImage}
-                      disabled={imageLoading}
-                      variant="outline"
-                      className="w-full sm:w-auto"
-                    >
-                      {imageLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating Image...
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="mr-2 h-4 w-4" />
-                          Generate Scene Image
-                        </>
-                      )}
-                    </Button>
+                  <div className="space-y-4 mb-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-prompt">Custom Image Prompt (optional)</Label>
+                      <div className="flex gap-2">
+                        <Textarea
+                          id="custom-prompt"
+                          placeholder="Enter a specific scene or visual you'd like to generate..."
+                          value={customImagePrompt}
+                          onChange={(e) => setCustomImagePrompt(e.target.value)}
+                          className="resize-none"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Describe the scene you want to visualize, or leave empty to generate based on the story
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={handleGenerateImage}
+                        disabled={imageLoading}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                      >
+                        {imageLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating Image...
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            Generate Scene Image
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 )}
                 
-                <ScrollArea className="h-[300px] rounded-md">
-                  <div className="prose dark:prose-invert max-w-none">
-                    {generatedStory.story.split('\n\n').map((paragraph, i) => (
-                      <p key={i} className="mb-4">{paragraph}</p>
-                    ))}
+                {/* Story View Toggle */}
+                {generatedStory.storyArcs && generatedStory.storyArcs.length > 0 && (
+                  <div className="flex items-center justify-end space-x-2 mb-4">
+                    <Label htmlFor="show-arcs" className="text-sm">Show as Story Arcs</Label>
+                    <Switch
+                      id="show-arcs"
+                      checked={showArcsView}
+                      onCheckedChange={setShowArcsView}
+                    />
                   </div>
+                )}
+                
+                {/* Story Content */}
+                <ScrollArea className="h-[350px] rounded-md">
+                  {renderStoryContent()}
                 </ScrollArea>
               </motion.div>
             ) : (

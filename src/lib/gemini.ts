@@ -10,9 +10,15 @@ export type StoryPrompt = {
   length?: "short" | "medium" | "long";
 };
 
+export type StoryArc = {
+  title: string;
+  content: string;
+};
+
 export type StoryResponse = {
   story: string;
   title: string;
+  storyArcs?: StoryArc[];
   error?: string;
 };
 
@@ -25,11 +31,19 @@ export async function generateStory(
       throw new Error("API key is required");
     }
     
+    // Enhanced prompt requesting structured story with arcs
     const mythologyPrompt = `Create a ${prompt.length || "medium"} mythological story from ${
       prompt.mythology
     } mythology${prompt.character ? ` featuring ${prompt.character}` : ""}${
       prompt.theme ? ` with themes of ${prompt.theme}` : ""
-    }. Format the response as a JSON object with 'title' and 'story' fields. Keep the tone authentic to the cultural context.`;
+    }. 
+    
+    Format the response as a JSON object with the following fields:
+    - 'title': a compelling title for the story
+    - 'story': the complete narrative text
+    - 'storyArcs': an array of story sections/arcs, where each arc has a 'title' and 'content' field
+    
+    Divide the story into 3-5 meaningful arcs or chapters. Keep the tone authentic to the cultural context.`;
     
     const response = await fetch(
       `${API_URL}?key=${apiKey}`,
@@ -72,6 +86,7 @@ export async function generateStory(
         return {
           title: storyData.title || "Untitled Story",
           story: storyData.story || text,
+          storyArcs: storyData.storyArcs || [],
         };
       } else {
         // Fallback if no JSON is found

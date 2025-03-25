@@ -24,6 +24,15 @@ export async function generateImage(params: ImageGenerationParams): Promise<Pixl
       throw new Error("API key is required");
     }
 
+    if (!prompt || prompt.trim() === "") {
+      throw new Error("Image prompt is required");
+    }
+
+    // Enhance the prompt with aesthetic details if the prompt is very short
+    const enhancedPrompt = prompt.length < 15 
+      ? `${prompt}, detailed illustration, epic scene, dramatic lighting, mythological style` 
+      : prompt;
+
     const response = await fetch(`${PIXLR_API_URL}/text2image`, {
       method: "POST",
       headers: {
@@ -31,7 +40,7 @@ export async function generateImage(params: ImageGenerationParams): Promise<Pixl
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        prompt,
+        prompt: enhancedPrompt,
         width,
         height,
         num_outputs: 1,
