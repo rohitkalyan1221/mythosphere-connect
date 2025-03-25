@@ -1,13 +1,15 @@
 
 import React, { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import HeroSection from '../components/HeroSection';
 import ExplorerSection from '../components/ExplorerSection';
 import CommunitySection from '../components/CommunitySection';
 import Footer from '../components/Footer';
-import { Sparkles, Brain, Palette, Globe } from 'lucide-react';
+import { Sparkles, Brain, Palette, Globe, BookOpen } from 'lucide-react';
 import FeatureCard from '../components/FeatureCard';
+import { Button } from '@/components/ui/button';
 
 const Index: React.FC = () => {
   const controls = useAnimation();
@@ -47,10 +49,11 @@ const Index: React.FC = () => {
         <HeroSection />
         
         <section id="features" className="py-24 relative">
+          <div className="absolute inset-0 rune-pattern opacity-5"></div>
           <div className="container mx-auto px-4">
             <div className="text-center mb-16">
               <motion.h2 
-                className="text-3xl md:text-4xl font-semibold mb-4"
+                className="text-3xl md:text-4xl font-mythical mb-4"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
@@ -82,6 +85,24 @@ const Index: React.FC = () => {
                 />
               ))}
             </div>
+
+            <motion.div
+              className="mt-12 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Link to="/stories">
+                <Button 
+                  variant="outline" 
+                  className="group border-primary/30 hover:border-primary"
+                >
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Try Our Story Generator
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </section>
         

@@ -85,6 +85,7 @@ export default {
 			fontFamily: {
 				sans: ['SF Pro Display', 'system-ui', 'sans-serif'],
 				mono: ['SF Mono', 'monospace'],
+				mythical: ['Cinzel', 'serif'], 
 			},
 			keyframes: {
 				'accordion-down': {
@@ -130,6 +131,16 @@ export default {
 				'rotate-slow': {
 					'0%': { transform: 'rotate(0deg)' },
 					'100%': { transform: 'rotate(360deg)' }
+				},
+				'pulse-glow': {
+					'0%, 100%': { 
+						boxShadow: '0 0 5px 2px rgba(124, 58, 237, 0.2)',
+						opacity: '0.8'
+					},
+					'50%': { 
+						boxShadow: '0 0 20px 5px rgba(124, 58, 237, 0.4)',
+						opacity: '1'
+					}
 				}
 			},
 			animation: {
@@ -143,7 +154,8 @@ export default {
 				'blur-in': 'blur-in 0.5s ease-out',
 				'slide-in-right': 'slide-in-right 0.5s ease-out',
 				'slide-up': 'slide-up 0.6s ease-out',
-				'rotate-slow': 'rotate-slow 20s linear infinite'
+				'rotate-slow': 'rotate-slow 20s linear infinite',
+				'pulse-glow': 'pulse-glow 4s ease-in-out infinite'
 			},
 			backdropFilter: {
 				'none': 'none',

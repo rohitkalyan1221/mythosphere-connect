@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Scroll } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Link } from 'react-router-dom';
 
 const NavBar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -24,8 +26,9 @@ const NavBar: React.FC = () => {
   };
 
   const navItems = [
-    { name: 'Home', href: '#' },
+    { name: 'Home', href: '/' },
     { name: 'Explore', href: '#explore' },
+    { name: 'Stories', href: '/stories' },
     { name: 'Community', href: '#community' },
     { name: 'Features', href: '#features' },
   ];
@@ -37,29 +40,42 @@ const NavBar: React.FC = () => {
     )}>
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center">
-          <motion.a 
+          <motion.div
             href="#" 
-            className="text-xl md:text-2xl font-semibold" 
+            className="text-xl md:text-2xl font-mythical flex items-center" 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            Mythosphere
-          </motion.a>
+            <Scroll className="h-6 w-6 mr-2 text-primary" />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">Mythosphere</span>
+          </motion.div>
         </div>
 
         <nav className="hidden md:flex items-center space-x-8">
           {navItems.map((item, index) => (
-            <motion.a
+            <motion.div
               key={item.name}
-              href={item.href}
-              className="text-foreground hover:text-primary transition-colors duration-200"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 * index }}
             >
-              {item.name}
-            </motion.a>
+              {item.href.startsWith('/') ? (
+                <Link
+                  to={item.href}
+                  className="text-foreground hover:text-primary transition-colors duration-200"
+                >
+                  {item.name}
+                </Link>
+              ) : (
+                <a
+                  href={item.href}
+                  className="text-foreground hover:text-primary transition-colors duration-200"
+                >
+                  {item.name}
+                </a>
+              )}
+            </motion.div>
           ))}
         </nav>
 
@@ -68,6 +84,13 @@ const NavBar: React.FC = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            <ThemeToggle />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
           >
             <Button
               variant="ghost"
@@ -79,7 +102,7 @@ const NavBar: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.5 }}
+            transition={{ duration: 0.3, delay: 0.6 }}
           >
             <Button className="bg-primary hover:bg-primary/90">
               Join Community
@@ -87,7 +110,8 @@ const NavBar: React.FC = () => {
           </motion.div>
         </div>
 
-        <div className="md:hidden">
+        <div className="md:hidden flex items-center space-x-2">
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
@@ -114,14 +138,25 @@ const NavBar: React.FC = () => {
         >
           <nav className="flex flex-col space-y-4">
             {navItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="text-foreground hover:text-primary py-2 transition-colors duration-200"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.name}
-              </a>
+              item.href.startsWith('/') ? (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className="text-foreground hover:text-primary py-2 transition-colors duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ) : (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className="text-foreground hover:text-primary py-2 transition-colors duration-200"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </a>
+              )
             ))}
             <div className="pt-4 flex flex-col space-y-3">
               <Button
