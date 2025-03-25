@@ -14,6 +14,8 @@ import { generateStory, StoryPrompt, StoryResponse } from "@/lib/gemini";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 
+const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
+
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
   "Chinese", "Hindu", "Mesopotamian", "Mayan", "Aztec",
@@ -27,9 +29,9 @@ const themes = [
 ];
 
 const StoryGenerator: React.FC = () => {
-  const [apiKey, setApiKey] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>(DEFAULT_API_KEY);
   const [loading, setLoading] = useState(false);
-  const [useApiKey, setUseApiKey] = useState(false);
+  const [useCustomApiKey, setUseCustomApiKey] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -39,10 +41,12 @@ const StoryGenerator: React.FC = () => {
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
 
   const handleGenerate = async () => {
-    if (!apiKey && useApiKey) {
+    const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
+    
+    if (!keyToUse) {
       toast({
         title: "API Key Required",
-        description: "Please enter your Gemini API key to generate a story",
+        description: "Please enter a Gemini API key to generate a story",
         variant: "destructive",
       });
       return;
@@ -50,20 +54,21 @@ const StoryGenerator: React.FC = () => {
 
     setLoading(true);
     try {
-      // For demo purposes, if no API key is provided, show sample story
-      if (!useApiKey) {
-        setTimeout(() => {
-          setGeneratedStory({
-            title: "The Trials of Odysseus",
-            story: "In the ancient days, when gods walked among men, the clever Odysseus found himself far from home after the fall of Troy. Cursed by Poseidon for blinding his son, the Cyclops Polyphemus, Odysseus was doomed to wander the wine-dark sea for ten long years.\n\nHis journey took him to the land of the Lotus-eaters, where his men nearly forgot their homeland. He outwitted the sorceress Circe, who had transformed his crew into swine. He sailed past the Sirens, whose enchanting songs lured sailors to their doom, by having his men plug their ears with wax while he alone listened, bound tightly to the mast.\n\nHe navigated between Scylla, the six-headed monster, and Charybdis, the deadly whirlpool. He visited the underworld to seek guidance from the prophet Tiresias. Throughout his trials, Odysseus demonstrated remarkable cunning, resilience, and leadership.\n\nMeanwhile, back on Ithaca, his faithful wife Penelope cleverly delayed her suitors by weaving a burial shroud for Odysseus's father by day and unraveling it by night. Their son Telemachus grew into a man, searching for news of his long-lost father.\n\nWhen Odysseus finally returned, disguised as a beggar, he slew the suitors who had been consuming his wealth and threatening his household. With the help of Athena, he reclaimed his kingdom and reunited with his beloved Penelope, proving that determination and wisdom can overcome even the wrath of the gods."
-          });
-          setLoading(false);
-        }, 1500);
-        return;
-      }
-      
-      const story = await generateStory(apiKey, storyPrompt);
+      const story = await generateStory(keyToUse, storyPrompt);
       setGeneratedStory(story);
+      
+      if (story.error) {
+        toast({
+          title: "Generation Error",
+          description: story.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Story Generated",
+          description: `"${story.title}" has been created successfully`,
+        });
+      }
     } catch (error) {
       console.error("Failed to generate story:", error);
       toast({
@@ -84,7 +89,7 @@ const StoryGenerator: React.FC = () => {
           Mythological Story Generator
         </CardTitle>
         <CardDescription>
-          Create authentic mythological tales with AI assistance
+          Create authentic mythological tales with Gemini AI assistance
         </CardDescription>
       </CardHeader>
       
@@ -100,14 +105,14 @@ const StoryGenerator: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="use-api-key"
-                  checked={useApiKey}
-                  onCheckedChange={setUseApiKey}
+                  checked={useCustomApiKey}
+                  onCheckedChange={setUseCustomApiKey}
                 />
-                <Label htmlFor="use-api-key">Use API Key</Label>
+                <Label htmlFor="use-api-key">Use Custom API Key</Label>
               </div>
             </div>
             
-            {useApiKey && (
+            {useCustomApiKey && (
               <div className="space-y-2">
                 <Label htmlFor="api-key">Gemini API Key</Label>
                 <Input
