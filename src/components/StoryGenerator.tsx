@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,13 +10,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
-import { generateImage, PixlrResponse } from "@/lib/pixlr";
+import { generateImage, StabilityResponse } from "@/lib/stability";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
-const DEFAULT_PIXLR_KEY = "92b0e3fac21b463682ec42c523173401";
+const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
@@ -33,11 +32,11 @@ const themes = [
 
 const StoryGenerator: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(DEFAULT_API_KEY);
-  const [pixlrApiKey, setPixlrApiKey] = useState<string>(DEFAULT_PIXLR_KEY);
+  const [stabilityApiKey, setStabilityApiKey] = useState<string>(DEFAULT_STABILITY_KEY);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [useCustomApiKey, setUseCustomApiKey] = useState(false);
-  const [useCustomPixlrKey, setUseCustomPixlrKey] = useState(false);
+  const [useCustomStabilityKey, setUseCustomStabilityKey] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -66,7 +65,6 @@ const StoryGenerator: React.FC = () => {
     try {
       const story = await generateStory(keyToUse, storyPrompt);
       setGeneratedStory(story);
-      // Reset image when generating new story
       setGeneratedImage(null);
       setCustomImagePrompt("");
       
@@ -105,12 +103,12 @@ const StoryGenerator: React.FC = () => {
       return;
     }
     
-    const pixlrKey = useCustomPixlrKey ? pixlrApiKey : DEFAULT_PIXLR_KEY;
+    const stabilityKey = useCustomStabilityKey ? stabilityApiKey : DEFAULT_STABILITY_KEY;
     
-    if (!pixlrKey) {
+    if (!stabilityKey) {
       toast({
         title: "API Key Required",
-        description: "Please enter a Pixlr API key to generate an image",
+        description: "Please enter a Stability AI API key to generate an image",
         variant: "destructive",
       });
       return;
@@ -118,7 +116,6 @@ const StoryGenerator: React.FC = () => {
 
     setImageLoading(true);
     try {
-      // Use custom prompt if provided, otherwise create one based on the story
       const imagePrompt = customImagePrompt.trim() !== "" 
         ? customImagePrompt
         : `${generatedStory.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
@@ -127,7 +124,7 @@ const StoryGenerator: React.FC = () => {
       
       const result = await generateImage({
         prompt: imagePrompt,
-        apiKey: pixlrKey
+        apiKey: stabilityKey
       });
       
       console.log("Image generation result:", result);
@@ -312,23 +309,23 @@ const StoryGenerator: React.FC = () => {
             <div className="flex justify-end">
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="use-pixlr-key"
-                  checked={useCustomPixlrKey}
-                  onCheckedChange={setUseCustomPixlrKey}
+                  id="use-stability-key"
+                  checked={useCustomStabilityKey}
+                  onCheckedChange={setUseCustomStabilityKey}
                 />
-                <Label htmlFor="use-pixlr-key">Use Custom Pixlr Key</Label>
+                <Label htmlFor="use-stability-key">Use Custom Stability AI Key</Label>
               </div>
             </div>
             
-            {useCustomPixlrKey && (
+            {useCustomStabilityKey && (
               <div className="space-y-2">
-                <Label htmlFor="pixlr-key">Pixlr API Key</Label>
+                <Label htmlFor="stability-key">Stability AI API Key</Label>
                 <Input
-                  id="pixlr-key"
+                  id="stability-key"
                   type="password"
-                  placeholder="Enter your Pixlr API key"
-                  value={pixlrApiKey}
-                  onChange={(e) => setPixlrApiKey(e.target.value)}
+                  placeholder="Enter your Stability AI API key"
+                  value={stabilityApiKey}
+                  onChange={(e) => setStabilityApiKey(e.target.value)}
                   className="font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
@@ -381,7 +378,7 @@ const StoryGenerator: React.FC = () => {
                     />
                     <div className="absolute bottom-2 right-2">
                       <p className="text-xs opacity-70 bg-black/30 text-white px-2 py-1 rounded-md">
-                        Generated with Pixlr AI
+                        Generated with Stability AI
                       </p>
                     </div>
                   </div>
