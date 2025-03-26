@@ -123,10 +123,14 @@ const StoryGenerator: React.FC = () => {
         ? customImagePrompt
         : `${generatedStory.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
       
+      console.log("Generating image with prompt:", imagePrompt);
+      
       const result = await generateImage({
         prompt: imagePrompt,
         apiKey: pixlrKey
       });
+      
+      console.log("Image generation result:", result);
       
       if (result.error) {
         toast({
@@ -139,6 +143,12 @@ const StoryGenerator: React.FC = () => {
         toast({
           title: "Image Generated",
           description: "Your mythological scene has been illustrated",
+        });
+      } else {
+        toast({
+          title: "Image Generation Error",
+          description: "No image URL was returned",
+          variant: "destructive",
         });
       }
     } catch (error) {

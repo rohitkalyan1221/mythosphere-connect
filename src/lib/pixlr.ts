@@ -33,6 +33,13 @@ export async function generateImage(params: ImageGenerationParams): Promise<Pixl
       ? `${prompt}, detailed illustration, epic scene, dramatic lighting, mythological style` 
       : prompt;
 
+    console.log("Sending request to Pixlr API with:", {
+      prompt: enhancedPrompt,
+      apiKey: apiKey.substring(0, 5) + "...", // Log partial key for security
+      width,
+      height
+    });
+
     const response = await fetch(`${PIXLR_API_URL}/text2image`, {
       method: "POST",
       headers: {
@@ -47,21 +54,28 @@ export async function generateImage(params: ImageGenerationParams): Promise<Pixl
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Error generating image");
-    }
+    console.log("Pixlr API response status:", response.status);
+    
+    const responseData = await response.json();
+    console.log("Pixlr API response data:", responseData);
 
-    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(responseData.message || responseData.error || "Error generating image");
+    }
     
     // Extract image URL from the response
-    if (data.results && data.results.length > 0) {
-      return { url: data.results[0].image_url };
+    if (responseData.results && responseData.results.length > 0) {
+      return { url: responseData.results[0].image_url };
     } else {
-      throw new Error("No image was generated");
+      throw new Error("No image was generated in the response");
     }
   } catch (error) {
     console.error("Error generating image:", error);
+    toast({
+      title: "Image Generation Failed",
+      description: error instanceof Error ? error.message : "Unknown error occurred",
+      variant: "destructive",
+    });
     return {
       error: error instanceof Error ? error.message : "Unknown error occurred",
     };
