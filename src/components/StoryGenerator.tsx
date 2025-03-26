@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare } from "lucide-react";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Cube } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
+import { generateModel, checkModelStatus, MeshyResponse } from "@/lib/meshy";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
 const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
+const DEFAULT_MESHY_KEY = "msy_A95tIfxXvNXtSTzQ0b7hBCNbL8psuei8ZeVm";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
@@ -33,10 +35,13 @@ const themes = [
 const StoryGenerator: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(DEFAULT_API_KEY);
   const [stabilityApiKey, setStabilityApiKey] = useState<string>(DEFAULT_STABILITY_KEY);
+  const [meshyApiKey, setMeshyApiKey] = useState<string>(DEFAULT_MESHY_KEY);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
+  const [modelLoading, setModelLoading] = useState(false);
   const [useCustomApiKey, setUseCustomApiKey] = useState(false);
   const [useCustomStabilityKey, setUseCustomStabilityKey] = useState(false);
+  const [useCustomMeshyKey, setUseCustomMeshyKey] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -45,9 +50,55 @@ const StoryGenerator: React.FC = () => {
   });
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedModel, setGeneratedModel] = useState<MeshyResponse | null>(null);
   const [activeTab, setActiveTab] = useState<string>("create");
   const [customImagePrompt, setCustomImagePrompt] = useState<string>("");
+  const [customModelPrompt, setCustomModelPrompt] = useState<string>("");
   const [showArcsView, setShowArcsView] = useState<boolean>(true);
+  const [modelTaskId, setModelTaskId] = useState<string | null>(null);
+  const [modelPollingInterval, setModelPollingInterval] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (modelTaskId) {
+      const interval = window.setInterval(async () => {
+        try {
+          const meshyKey = useCustomMeshyKey ? meshyApiKey : DEFAULT_MESHY_KEY;
+          const status = await checkModelStatus(modelTaskId, meshyKey);
+          
+          if (status.error) {
+            clearInterval(interval);
+            setModelLoading(false);
+            setModelTaskId(null);
+            toast({
+              title: "Model Generation Failed",
+              description: status.error,
+              variant: "destructive",
+            });
+          } else if (status.modelUrl) {
+            clearInterval(interval);
+            setModelLoading(false);
+            setModelTaskId(null);
+            setGeneratedModel(status);
+            toast({
+              title: "3D Model Generated",
+              description: "Your mythological character has been modeled in 3D",
+            });
+          }
+        } catch (error) {
+          console.error("Error polling model status:", error);
+          clearInterval(interval);
+          setModelLoading(false);
+          setModelTaskId(null);
+        }
+      }, 10000);
+      
+      setModelPollingInterval(interval);
+      
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }
+  }, [modelTaskId, meshyApiKey, useCustomMeshyKey]);
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -157,6 +208,80 @@ const StoryGenerator: React.FC = () => {
       });
     } finally {
       setImageLoading(false);
+    }
+  };
+
+  const handleGenerateModel = async () => {
+    if (!generatedStory) {
+      toast({
+        title: "No Story Found",
+        description: "Please generate a story first before creating a 3D model",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const meshyKey = useCustomMeshyKey ? meshyApiKey : DEFAULT_MESHY_KEY;
+    
+    if (!meshyKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter a Meshy AI API key to generate a 3D model",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setModelLoading(true);
+    try {
+      let characterPrompt;
+      if (customModelPrompt.trim() !== "") {
+        characterPrompt = customModelPrompt;
+      } else if (storyPrompt.character) {
+        characterPrompt = `${storyPrompt.character} from ${storyPrompt.mythology} mythology, full body, detailed, 3D character`;
+      } else {
+        const defaultCharacter = generatedStory.title.split(" ")[0];
+        characterPrompt = `${defaultCharacter} from ${storyPrompt.mythology} mythology, full body, detailed, 3D character`;
+      }
+      
+      console.log("Generating 3D model with prompt:", characterPrompt);
+      
+      const result = await generateModel({
+        prompt: characterPrompt,
+        apiKey: meshyKey
+      });
+      
+      console.log("Model generation result:", result);
+      
+      if (result.error) {
+        toast({
+          title: "Model Generation Error",
+          description: result.error,
+          variant: "destructive",
+        });
+        setModelLoading(false);
+      } else if (result.taskId) {
+        setModelTaskId(result.taskId);
+        toast({
+          title: "Model Generation Started",
+          description: "Your 3D model is being created. This may take a few minutes.",
+        });
+      } else {
+        toast({
+          title: "Model Generation Error",
+          description: "No task ID was returned",
+          variant: "destructive",
+        });
+        setModelLoading(false);
+      }
+    } catch (error) {
+      console.error("Failed to generate 3D model:", error);
+      toast({
+        title: "Model Generation Failed",
+        description: "There was an error generating your 3D model. Please try again.",
+        variant: "destructive",
+      });
+      setModelLoading(false);
     }
   };
 
@@ -333,6 +458,34 @@ const StoryGenerator: React.FC = () => {
                 </p>
               </div>
             )}
+            
+            <div className="flex justify-end">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="use-meshy-key"
+                  checked={useCustomMeshyKey}
+                  onCheckedChange={setUseCustomMeshyKey}
+                />
+                <Label htmlFor="use-meshy-key">Use Custom Meshy AI Key</Label>
+              </div>
+            </div>
+            
+            {useCustomMeshyKey && (
+              <div className="space-y-2">
+                <Label htmlFor="meshy-key">Meshy AI API Key</Label>
+                <Input
+                  id="meshy-key"
+                  type="password"
+                  placeholder="Enter your Meshy AI API key"
+                  value={meshyApiKey}
+                  onChange={(e) => setMeshyApiKey(e.target.value)}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your API key is only used in your browser and not stored on our servers
+                </p>
+              </div>
+            )}
           </CardContent>
           
           <CardFooter>
@@ -420,6 +573,91 @@ const StoryGenerator: React.FC = () => {
                         )}
                       </Button>
                     </div>
+                  </div>
+                )}
+                
+                {/* 3D Model Section */}
+                {generatedModel && generatedModel.modelUrl ? (
+                  <div className="space-y-4 mb-6">
+                    <div className="border-t pt-4 mb-2">
+                      <h4 className="text-lg font-semibold">3D Character Model</h4>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      {generatedModel.thumbnailUrl && (
+                        <div className="relative w-full max-w-xs mb-4">
+                          <img 
+                            src={generatedModel.thumbnailUrl} 
+                            alt="3D Model Thumbnail"
+                            className="w-full h-auto rounded-md shadow-md"
+                          />
+                        </div>
+                      )}
+                      <div className="flex gap-4">
+                        <Button
+                          onClick={() => window.open(generatedModel.modelUrl, '_blank')}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <Cube className="h-4 w-4" />
+                          View 3D Model
+                        </Button>
+                        {generatedModel.glbUrl && (
+                          <Button
+                            onClick={() => window.open(generatedModel.glbUrl, '_blank')}
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <Cube className="h-4 w-4" />
+                            Download GLB
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mb-6 border-t pt-4">
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-semibold">Generate 3D Character</h4>
+                      <Label htmlFor="custom-model-prompt">Custom Character Prompt (optional)</Label>
+                      <div className="flex gap-2">
+                        <Textarea
+                          id="custom-model-prompt"
+                          placeholder="Describe the character you want to generate in 3D..."
+                          value={customModelPrompt}
+                          onChange={(e) => setCustomModelPrompt(e.target.value)}
+                          className="resize-none"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Describe the mythological character in detail, or leave empty to generate based on the story
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={handleGenerateModel}
+                        disabled={modelLoading}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                      >
+                        {modelLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating 3D Model...
+                          </>
+                        ) : (
+                          <>
+                            <Cube className="mr-2 h-4 w-4" />
+                            Generate 3D Character
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {modelLoading && (
+                      <p className="text-center text-sm text-muted-foreground mt-2">
+                        3D model generation can take several minutes. Please be patient.
+                      </p>
+                    )}
                   </div>
                 )}
                 
