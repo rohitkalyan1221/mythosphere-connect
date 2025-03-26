@@ -4,12 +4,21 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from './ui/button';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X, Sparkles, User, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const NavBar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { user, profile, signOut } = useAuth();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +33,13 @@ const NavBar: React.FC = () => {
   useEffect(() => {
     setIsOpen(false);
   }, [location]);
+
+  const getInitials = () => {
+    if (profile?.username) {
+      return profile.username.substring(0, 2).toUpperCase();
+    }
+    return user?.email?.substring(0, 2).toUpperCase() || 'U';
+  };
 
   return (
     <motion.header
@@ -51,10 +67,58 @@ const NavBar: React.FC = () => {
           <div className="hidden md:flex items-center space-x-1">
             <NavLinks />
             <ThemeToggle />
+            
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
+                    <LogIn className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm" className="ml-4">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
           
           <div className="md:hidden flex items-center">
             <ThemeToggle className="mr-2" />
+            {user ? (
+              <Link to="/profile" className="mr-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">
+                    {getInitials()}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            ) : (
+              <Link to="/auth" className="mr-2">
+                <Button variant="outline" size="sm">
+                  <LogIn className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
             <Button 
               variant="ghost" 
               size="icon" 
@@ -80,6 +144,20 @@ const NavBar: React.FC = () => {
           <div className="container mx-auto px-4 py-4">
             <nav className="flex flex-col space-y-4">
               <MobileNavLinks />
+              {user ? (
+                <button 
+                  onClick={() => signOut()} 
+                  className="text-lg font-medium px-2 py-2 hover:text-primary transition-colors flex items-center"
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign out
+                </button>
+              ) : (
+                <Link to="/auth" className="text-lg font-medium px-2 py-2 hover:text-primary transition-colors flex items-center">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Link>
+              )}
             </nav>
           </div>
         </motion.div>
@@ -122,6 +200,7 @@ const MobileNavLinks: React.FC = () => {
   const links = [
     { to: "/", label: "Home" },
     { to: "/stories", label: "Stories" },
+    { to: "/profile", label: "Profile" },
   ];
   
   return (
