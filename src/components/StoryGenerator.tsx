@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Cube } from "lucide-react";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Box } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
 import { generateModel, checkModelStatus, MeshyResponse } from "@/lib/meshy";
@@ -521,7 +521,6 @@ const StoryGenerator: React.FC = () => {
                   <h3 className="text-xl font-mythical text-primary">{generatedStory.title}</h3>
                 </div>
                 
-                {/* Image Section */}
                 {generatedImage ? (
                   <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6">
                     <img 
@@ -576,7 +575,6 @@ const StoryGenerator: React.FC = () => {
                   </div>
                 )}
                 
-                {/* 3D Model Section */}
                 {generatedModel && generatedModel.modelUrl ? (
                   <div className="space-y-4 mb-6">
                     <div className="border-t pt-4 mb-2">
@@ -598,7 +596,7 @@ const StoryGenerator: React.FC = () => {
                           variant="outline"
                           className="flex items-center gap-2"
                         >
-                          <Cube className="h-4 w-4" />
+                          <Box className="h-4 w-4" />
                           View 3D Model
                         </Button>
                         {generatedModel.glbUrl && (
@@ -607,7 +605,7 @@ const StoryGenerator: React.FC = () => {
                             variant="outline"
                             className="flex items-center gap-2"
                           >
-                            <Cube className="h-4 w-4" />
+                            <Box className="h-4 w-4" />
                             Download GLB
                           </Button>
                         )}
@@ -647,7 +645,7 @@ const StoryGenerator: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <Cube className="mr-2 h-4 w-4" />
+                            <Box className="mr-2 h-4 w-4" />
                             Generate 3D Character
                           </>
                         )}
@@ -661,7 +659,6 @@ const StoryGenerator: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Story View Toggle */}
                 {generatedStory.storyArcs && generatedStory.storyArcs.length > 0 && (
                   <div className="flex items-center justify-end space-x-2 mb-4">
                     <Label htmlFor="show-arcs" className="text-sm">Show as Story Arcs</Label>
@@ -673,7 +670,6 @@ const StoryGenerator: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Story Content */}
                 <ScrollArea className="h-[350px] rounded-md">
                   {renderStoryContent()}
                 </ScrollArea>
