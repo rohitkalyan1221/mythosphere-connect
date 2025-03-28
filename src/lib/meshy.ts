@@ -60,9 +60,20 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
     console.log("Meshy AI API response status:", response.status);
     
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Meshy API error:", errorData);
-      throw new Error(errorData.message || errorData.error || "Error generating 3D model");
+      const errorText = await response.text();
+      let errorMessage = "Error generating 3D model";
+      
+      try {
+        // Try to parse as JSON to get more details
+        const errorData = JSON.parse(errorText);
+        console.error("Meshy API error response:", errorData);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (jsonError) {
+        // If not valid JSON, log the raw text
+        console.error("Meshy API error (non-JSON):", errorText);
+      }
+      
+      throw new Error(errorMessage);
     }
     
     const responseData = await response.json();
@@ -70,9 +81,12 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
 
     // Initial response contains a task ID which we need to poll for the result
     if (responseData.id) {
-      return { taskId: responseData.id, status: responseData.status };
+      return { 
+        taskId: responseData.id, 
+        status: responseData.status || "processing" 
+      };
     } else {
-      throw new Error("No task ID was returned");
+      throw new Error("No task ID was returned from Meshy API");
     }
   } catch (error) {
     console.error("Error generating 3D model:", error);
@@ -83,6 +97,7 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
     });
     return {
       error: error instanceof Error ? error.message : "Unknown error occurred",
+      status: "error"
     };
   }
 }
@@ -103,16 +118,34 @@ export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_
       },
     });
 
+    console.log("Meshy AI status check response status:", response.status);
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Meshy API status check error:", errorData);
-      throw new Error(errorData.message || errorData.error || "Error checking 3D model status");
+      const errorText = await response.text();
+      let errorMessage = "Error checking 3D model status";
+      
+      try {
+        // Try to parse as JSON to get more details
+        const errorData = JSON.parse(errorText);
+        console.error("Meshy API status check error:", errorData);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch (jsonError) {
+        // If not valid JSON, log the raw text
+        console.error("Meshy API status check error (non-JSON):", errorText);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("Meshy AI status check response:", responseData);
+    console.log("Meshy AI status check response data:", responseData);
 
     if (responseData.status === "completed" || responseData.status === "succeeded") {
+      // Make sure we have the required URLs
+      if (!responseData.viewer_url && (!responseData.output || !responseData.output.viewer_url)) {
+        throw new Error("Model generated but viewer URL is missing");
+      }
+      
       return {
         modelUrl: responseData.viewer_url || responseData.output?.viewer_url,
         glbUrl: responseData.output?.glb,
@@ -120,12 +153,13 @@ export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_
         status: responseData.status
       };
     } else if (responseData.status === "failed") {
-      throw new Error("Model generation failed: " + (responseData.error || "Unknown error"));
+      const errorMessage = responseData.error || "Model generation failed without specific error";
+      throw new Error("Model generation failed: " + errorMessage);
     } else {
       // Still processing
       return { 
         taskId,
-        status: responseData.status 
+        status: responseData.status || "processing"
       };
     }
   } catch (error) {
