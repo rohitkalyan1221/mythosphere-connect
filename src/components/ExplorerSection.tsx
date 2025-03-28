@@ -2,35 +2,40 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import AnimatedCard from './AnimatedCard';
-import { ArrowRight, Search } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 const ExplorerSection: React.FC = () => {
   const mythologies = [
     {
       title: "Greek Pantheon",
-      description: "Explore the realm of Zeus, Poseidon, and the gods of Olympus"
+      description: "Explore the realm of Zeus, Poseidon, and the gods of Olympus",
+      image: "/assets/communities/greek-mythology.jpg"
     },
     {
       title: "Norse Legends",
-      description: "Discover the tales of Thor, Odin, and the nine realms"
+      description: "Discover the tales of Thor, Odin, and the nine realms",
+      image: "/assets/communities/norse-mythology.jpg"
     },
     {
       title: "Egyptian Mythology",
-      description: "Uncover the mysteries of Ra, Isis, and ancient Egyptian deities"
+      description: "Uncover the mysteries of Ra, Isis, and ancient Egyptian deities",
+      image: "/assets/communities/egyptian-mythology.jpg"
     },
     {
       title: "Celtic Folklore",
-      description: "Wander through the mystical tales of Celtic heroes and spirits"
+      description: "Wander through the mystical tales of Celtic heroes and spirits",
+      image: "/assets/communities/celtic-mythology.jpg"
     },
     {
       title: "Japanese Mythology",
-      description: "Experience the rich traditions of Shinto gods and yokai"
+      description: "Experience the rich traditions of Shinto gods and yokai",
+      image: "/assets/communities/japanese-mythology.jpg"
     },
     {
       title: "Mayan Mythology",
-      description: "Journey through the sacred stories of Mesoamerican culture"
+      description: "Journey through the sacred stories of Mesoamerican culture",
+      image: "/assets/communities/mayan-mythology.jpg"
     }
   ];
 
@@ -62,24 +67,6 @@ const ExplorerSection: React.FC = () => {
           >
             Discover ancient stories from cultures around the world, powered by our AI storytelling engine
           </motion.p>
-          
-          <motion.div 
-            className="max-w-md mx-auto mt-8 flex rounded-full glass p-1 pr-1.5"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Search className="h-5 w-5 text-muted-foreground ml-3 mr-2 flex-shrink-0 self-center" />
-            <Input 
-              type="text" 
-              placeholder="Search mythology or deity..." 
-              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
-            />
-            <Button size="sm" className="rounded-full">
-              Search
-            </Button>
-          </motion.div>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -88,6 +75,7 @@ const ExplorerSection: React.FC = () => {
               key={myth.title}
               title={myth.title}
               description={myth.description}
+              imageSrc={myth.image}
               index={index}
             />
           ))}
