@@ -17,6 +17,7 @@ export interface MeshyResponse {
   thumbnailUrl?: string;
   taskId?: string;
   error?: string;
+  status?: string;
 }
 
 export async function generateModel(params: ModelGenerationParams): Promise<MeshyResponse> {
@@ -52,6 +53,7 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
         prompt,
         style,
         negative_prompt,
+        webhook_event_url: null // Ensure this is null or omit to avoid webhook errors
       }),
     });
 
@@ -60,7 +62,7 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Meshy API error:", errorData);
-      throw new Error(errorData.message || "Error generating 3D model");
+      throw new Error(errorData.message || errorData.error || "Error generating 3D model");
     }
     
     const responseData = await response.json();
@@ -68,7 +70,7 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
 
     // Initial response contains a task ID which we need to poll for the result
     if (responseData.id) {
-      return { taskId: responseData.id };
+      return { taskId: responseData.id, status: responseData.status };
     } else {
       throw new Error("No task ID was returned");
     }
@@ -87,38 +89,50 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
 
 export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_MESHY_KEY): Promise<MeshyResponse> {
   try {
+    if (!taskId) {
+      throw new Error("Task ID is required");
+    }
+    
+    console.log(`Checking status for Meshy task: ${taskId}`);
+    
     const response = await fetch(`https://api.meshy.ai/v2/text-to-3d/${taskId}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Meshy API status check error:", errorData);
-      throw new Error(errorData.message || "Error checking 3D model status");
+      throw new Error(errorData.message || errorData.error || "Error checking 3D model status");
     }
 
     const responseData = await response.json();
     console.log("Meshy AI status check response:", responseData);
 
-    if (responseData.status === "completed") {
+    if (responseData.status === "completed" || responseData.status === "succeeded") {
       return {
-        modelUrl: responseData.viewer_url,
+        modelUrl: responseData.viewer_url || responseData.output?.viewer_url,
         glbUrl: responseData.output?.glb,
-        thumbnailUrl: responseData.output?.thumbnail
+        thumbnailUrl: responseData.output?.thumbnail,
+        status: responseData.status
       };
     } else if (responseData.status === "failed") {
       throw new Error("Model generation failed: " + (responseData.error || "Unknown error"));
     } else {
       // Still processing
-      return { taskId };
+      return { 
+        taskId,
+        status: responseData.status 
+      };
     }
   } catch (error) {
     console.error("Error checking model status:", error);
     return {
       error: error instanceof Error ? error.message : "Unknown error occurred",
+      status: "error"
     };
   }
 }
