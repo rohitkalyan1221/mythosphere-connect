@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -60,7 +59,7 @@ const NavBar: React.FC = () => {
           >
             <Link to="/" className="flex items-center">
               <Sparkles className="h-6 w-6 text-primary mr-2" />
-              <span className="text-xl font-mythical">Mythosphere</span>
+              <span className="text-xl font-mythical">MythoAI</span>
             </Link>
           </motion.div>
           
@@ -132,7 +131,6 @@ const NavBar: React.FC = () => {
         </div>
       </div>
       
-      {/* Mobile Navigation */}
       {isOpen && (
         <motion.div 
           className="md:hidden bg-card/95 backdrop-blur-md shadow-lg"

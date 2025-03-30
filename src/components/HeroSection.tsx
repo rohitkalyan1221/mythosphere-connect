@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
 const HeroSection: React.FC = () => {
@@ -81,34 +82,17 @@ const HeroSection: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"
           >
-            <Button size="lg" className="rounded-full px-6 group">
-              Start Creating
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
-            <Button size="lg" variant="outline" className="rounded-full px-6">
-              Explore Mythology
-            </Button>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-20 relative"
-          >
-            <div className="absolute -inset-4 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 blur-xl opacity-50"></div>
-            <div className="relative glass rounded-xl shadow-xl p-2 max-w-4xl">
-              <div className="aspect-video overflow-hidden rounded-lg bg-black/10 flex items-center justify-center">
-                <div className="text-center p-10">
-                  <div className="glass rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
-                    <div className="animate-pulse w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-primary/30"></div>
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">Interactive Demo Preview</p>
-                </div>
-              </div>
-            </div>
+            <Link to="/stories">
+              <Button size="lg" className="rounded-full px-6 group">
+                Start Creating
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </Link>
+            <Link to="#explore">
+              <Button size="lg" variant="outline" className="rounded-full px-6">
+                Explore Mythology
+              </Button>
+            </Link>
           </motion.div>
         </div>
       </div>

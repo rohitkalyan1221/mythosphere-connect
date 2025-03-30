@@ -56,7 +56,7 @@ const Footer: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
             >
-              Mythosphere
+              MythoAI
             </motion.a>
             
             <motion.p 
@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Mythosphere is an AI-powered platform that brings ancient myths to life through
+              MythoAI is an AI-powered platform that brings ancient myths to life through
               collaborative storytelling, cultural exploration, and community engagement.
             </motion.p>
             
@@ -123,7 +123,7 @@ const Footer: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.5 }}
         >
           <p className="text-sm text-muted-foreground mb-4 md:mb-0">
-            © {currentYear} Mythosphere. All rights reserved.
+            © {currentYear} MythoAI. All rights reserved.
           </p>
           
           <div className="flex flex-wrap space-x-6">
