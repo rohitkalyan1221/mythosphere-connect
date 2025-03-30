@@ -13,32 +13,32 @@ const ExplorerSection: React.FC = () => {
     {
       title: "Greek Pantheon",
       description: "Explore the realm of Zeus, Poseidon, and the gods of Olympus",
-      image: "/assets/communities/greek-mythology.jpg"
+      image: "https://images.unsplash.com/photo-1564399580075-5dfe19c205f3?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3"
     },
     {
       title: "Norse Legends",
       description: "Discover the tales of Thor, Odin, and the nine realms",
-      image: "/assets/communities/norse-mythology.jpg"
+      image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3"
     },
     {
       title: "Egyptian Mythology",
       description: "Uncover the mysteries of Ra, Isis, and ancient Egyptian deities",
-      image: "/assets/communities/egyptian-mythology.jpg"
+      image: "https://images.unsplash.com/photo-1608328061409-d03f132d97b5?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3"
     },
     {
       title: "Celtic Folklore",
       description: "Wander through the mystical tales of Celtic heroes and spirits",
-      image: "/assets/communities/celtic-mythology.jpg"
+      image: "https://images.unsplash.com/photo-1529161518598-9c2a4e8a056a?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3"
     },
     {
       title: "Japanese Mythology",
       description: "Experience the rich traditions of Shinto gods and yokai",
-      image: "/assets/communities/japanese-mythology.jpg"
+      image: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3"
     },
     {
       title: "Mayan Mythology",
       description: "Journey through the sacred stories of Mesoamerican culture",
-      image: "/assets/communities/mayan-mythology.jpg"
+      image: "https://images.unsplash.com/photo-1531219572328-a0171b4448a3?q=80&w=1000&auto=format&fit=crop&ixlib=rb-4.0.3"
     }
   ];
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
@@ -33,7 +34,7 @@ const NavBar: React.FC = () => {
     <header className="fixed w-full top-0 z-50 transition-all duration-300" style={{ backgroundColor: scrolled ? "rgba(9, 9, 11, 0.85)" : "transparent", backdropFilter: scrolled ? "blur(10px)" : "none" }}>
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.svg" alt="MythoAI Logo" className="h-8 w-8" />
+          <img src="/assets/logo.svg" alt="MythoAI Logo" className="h-8 w-8" />
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">MythoAI</span>
         </Link>
         
