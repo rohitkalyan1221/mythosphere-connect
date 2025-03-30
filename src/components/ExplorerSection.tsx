@@ -4,9 +4,11 @@ import { motion } from 'framer-motion';
 import AnimatedCard from './AnimatedCard';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ExplorerSection: React.FC = () => {
+  const navigate = useNavigate();
+  
   const mythologies = [
     {
       title: "Greek Pantheon",
@@ -39,6 +41,10 @@ const ExplorerSection: React.FC = () => {
       image: "/assets/communities/mayan-mythology.jpg"
     }
   ];
+
+  const handleViewAll = () => {
+    navigate('/stories');
+  };
 
   return (
     <section id="explore" className="py-24 relative">
@@ -83,12 +89,10 @@ const ExplorerSection: React.FC = () => {
         </div>
         
         <div className="mt-12 text-center">
-          <Link to="/stories">
-            <Button variant="ghost" className="group">
-              View All Mythologies
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
+          <Button variant="ghost" className="group" onClick={handleViewAll}>
+            View All Mythologies
+            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Button>
         </div>
       </div>
     </section>

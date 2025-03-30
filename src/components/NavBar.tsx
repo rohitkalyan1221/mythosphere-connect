@@ -1,214 +1,94 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ThemeToggle } from './ThemeToggle';
-import { Button } from './ui/button';
-import { Menu, X, Sparkles, User, LogIn } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 const NavBar: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
-  
+  const location = useLocation();
+
   useEffect(() => {
     const handleScroll = () => {
-      const offset = window.scrollY;
-      setScrolled(offset > 50);
+      const isTop = window.scrollY < 100;
+      setScrolled(!isTop);
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
-  useEffect(() => {
-    setIsOpen(false);
-  }, [location]);
 
-  const getInitials = () => {
-    if (profile?.username) {
-      return profile.username.substring(0, 2).toUpperCase();
-    }
-    return user?.email?.substring(0, 2).toUpperCase() || 'U';
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
-    <motion.header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-background/80 backdrop-blur-md shadow-md' : 'bg-transparent'
-      }`}
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-20">
-          <motion.div
-            className="flex items-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Link to="/" className="flex items-center">
-              <Sparkles className="h-6 w-6 text-primary mr-2" />
-              <span className="text-xl font-mythical">MythoAI</span>
-            </Link>
-          </motion.div>
-          
-          <div className="hidden md:flex items-center space-x-1">
-            <NavLinks />
-            <ThemeToggle />
-            
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="cursor-pointer flex items-center">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
-                    <LogIn className="mr-2 h-4 w-4" />
-                    <span>Sign out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Link to="/auth">
-                <Button variant="outline" size="sm" className="ml-4">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
-                </Button>
-              </Link>
-            )}
-          </div>
-          
-          <div className="md:hidden flex items-center">
-            <ThemeToggle className="mr-2" />
-            {user ? (
-              <Link to="/profile" className="mr-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                    {getInitials()}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-            ) : (
-              <Link to="/auth" className="mr-2">
-                <Button variant="outline" size="sm">
-                  <LogIn className="h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setIsOpen(!isOpen)}
-              aria-label="Toggle Menu"
-              className="focus:ring-0"
-            >
-              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
-          </div>
+    <header className="fixed w-full top-0 z-50 transition-all duration-300" style={{ backgroundColor: scrolled ? "rgba(9, 9, 11, 0.85)" : "transparent", backdropFilter: scrolled ? "blur(10px)" : "none" }}>
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logo.svg" alt="MythoAI Logo" className="h-8 w-8" />
+          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">MythoAI</span>
+        </Link>
+        
+        <div className="hidden md:flex items-center space-x-6">
+          <Link to="/" className="text-sm font-medium hover:text-primary transition-colors">Home</Link>
+          <Link to="/stories" className="text-sm font-medium hover:text-primary transition-colors">Stories</Link>
+          <Link to="/community" className="text-sm font-medium hover:text-primary transition-colors">Community</Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="outline-none focus:outline-none rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.avatar_url} />
+                    <AvatarFallback>{profile?.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 mr-2">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => window.location.href = '/profile'}>Profile</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()}>Sign Out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/auth" className="text-sm font-medium hover:text-primary transition-colors">Sign In</Link>
+          )}
+        </div>
+        
+        <div className="md:hidden">
+          <button onClick={toggleMobileMenu} className="text-gray-500 hover:text-primary focus:outline-none">
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
       </div>
-      
-      {isOpen && (
-        <motion.div 
-          className="md:hidden bg-card/95 backdrop-blur-md shadow-lg"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="container mx-auto px-4 py-4">
-            <nav className="flex flex-col space-y-4">
-              <MobileNavLinks />
-              {user ? (
-                <button 
-                  onClick={() => signOut()} 
-                  className="text-lg font-medium px-2 py-2 hover:text-primary transition-colors flex items-center"
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign out
-                </button>
-              ) : (
-                <Link to="/auth" className="text-lg font-medium px-2 py-2 hover:text-primary transition-colors flex items-center">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
-                </Link>
-              )}
-            </nav>
-          </div>
-        </motion.div>
-      )}
-    </motion.header>
-  );
-};
 
-const NavLinks: React.FC = () => {
-  const location = useLocation();
-  
-  const links = [
-    { to: "/", label: "Home" },
-    { to: "/stories", label: "Stories" },
-  ];
-  
-  return (
-    <>
-      {links.map((link) => (
-        <Link to={link.to} key={link.to}>
-          <Button 
-            variant="ghost" 
-            className={`relative ${location.pathname === link.to ? 'text-primary' : 'text-foreground'}`}
-          >
-            {link.label}
-            {location.pathname === link.to && (
-              <motion.div 
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" 
-                layoutId="navbar-indicator"
-              />
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="bg-secondary/80 backdrop-blur-md absolute top-full left-0 w-full py-4 px-6 z-50">
+          <div className="flex flex-col items-center space-y-4">
+            <Link to="/" className="text-sm font-medium hover:text-primary transition-colors" onClick={closeMobileMenu}>Home</Link>
+            <Link to="/stories" className="text-sm font-medium hover:text-primary transition-colors" onClick={closeMobileMenu}>Stories</Link>
+            <Link to="/community" className="text-sm font-medium hover:text-primary transition-colors" onClick={closeMobileMenu}>Community</Link>
+            {user ? (
+              <>
+                <Link to="/profile" className="text-sm font-medium hover:text-primary transition-colors" onClick={closeMobileMenu}>Profile</Link>
+                <button onClick={() => { signOut(); closeMobileMenu(); }} className="text-sm font-medium hover:text-primary transition-colors">Sign Out</button>
+              </>
+            ) : (
+              <Link to="/auth" className="text-sm font-medium hover:text-primary transition-colors" onClick={closeMobileMenu}>Sign In</Link>
             )}
-          </Button>
-        </Link>
-      ))}
-    </>
-  );
-};
-
-const MobileNavLinks: React.FC = () => {
-  const links = [
-    { to: "/", label: "Home" },
-    { to: "/stories", label: "Stories" },
-    { to: "/profile", label: "Profile" },
-  ];
-  
-  return (
-    <>
-      {links.map((link) => (
-        <Link to={link.to} key={link.to} className="text-lg font-medium px-2 py-2 hover:text-primary transition-colors">
-          {link.label}
-        </Link>
-      ))}
-    </>
+          </div>
+        </div>
+      )}
+    </header>
   );
 };
 

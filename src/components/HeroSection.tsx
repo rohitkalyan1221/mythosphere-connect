@@ -1,11 +1,12 @@
-
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const HeroSection: React.FC = () => {
+  const navigate = useNavigate();
   const orbitRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -28,8 +29,16 @@ const HeroSection: React.FC = () => {
     };
   }, []);
 
+  const handleStartCreating = () => {
+    navigate('/stories');
+  };
+
+  const handleExploreMythology = () => {
+    navigate('/stories');
+  };
+
   return (
-    <section className="relative min-h-screen pt-20 flex items-center justify-center overflow-hidden">
+    <section className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden pt-20 pb-12">
       {/* Background gradient circles */}
       <div className="absolute inset-0 overflow-hidden z-0">
         <div className="absolute -top-[300px] -left-[300px] w-[600px] h-[600px] rounded-full bg-primary/10 animate-float blur-3xl opacity-60"></div>
@@ -44,8 +53,13 @@ const HeroSection: React.FC = () => {
         <div className="absolute bottom-1/4 right-1/3 w-16 h-16 rounded-full glass animate-float animation-delay-400"></div>
       </div>
       
-      <div className="container mx-auto px-4 z-10 mt-20">
-        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div 
+          className="text-center max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -76,25 +90,24 @@ const HeroSection: React.FC = () => {
             Connect with a community of storytellers and bring ancient narratives to modern light.
           </motion.p>
           
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"
-          >
-            <Link to="/stories">
-              <Button size="lg" className="rounded-full px-6 group">
-                Start Creating
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
-            <Link to="#explore">
-              <Button size="lg" variant="outline" className="rounded-full px-6">
-                Explore Mythology
-              </Button>
-            </Link>
-          </motion.div>
-        </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <Button 
+              size="lg" 
+              onClick={handleStartCreating}
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+            >
+              Start Creating
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={handleExploreMythology}
+              className="border-primary hover:bg-primary/10"
+            >
+              Explore Mythology
+            </Button>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

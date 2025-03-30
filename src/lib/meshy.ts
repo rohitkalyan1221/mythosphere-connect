@@ -39,7 +39,7 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
 
     console.log("Sending request to Meshy AI API with:", {
       prompt,
-      apiKey: apiKey.substring(0, 5) + "...", // Log partial key for security
+      apiKey: apiKey.substring(0, 5) + "...",
       style
     });
 
@@ -53,7 +53,6 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
         prompt,
         style,
         negative_prompt,
-        webhook_event_url: null // Ensure this is null or omit to avoid webhook errors
       }),
     });
 
@@ -141,15 +140,13 @@ export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_
     console.log("Meshy AI status check response data:", responseData);
 
     if (responseData.status === "completed" || responseData.status === "succeeded") {
-      // Make sure we have the required URLs
-      if (!responseData.viewer_url && (!responseData.output || !responseData.output.viewer_url)) {
-        throw new Error("Model generated but viewer URL is missing");
-      }
+      // For the newer API version, output is nested inside the output property
+      const output = responseData.output || responseData;
       
       return {
-        modelUrl: responseData.viewer_url || responseData.output?.viewer_url,
-        glbUrl: responseData.output?.glb,
-        thumbnailUrl: responseData.output?.thumbnail,
+        modelUrl: output.viewer_url,
+        glbUrl: output.glb,
+        thumbnailUrl: output.thumbnail,
         status: responseData.status
       };
     } else if (responseData.status === "failed") {
