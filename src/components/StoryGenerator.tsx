@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,17 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Box } from "lucide-react";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Bookmark, RefreshCcw, Gift } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
-import { generateModel, checkModelStatus, Model3DResponse } from "@/lib/masterpiecex";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
 const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
-const DEFAULT_MASTERPIECEX_KEY = "zpka_0414d521d54244b5bd60b60dfcc86048_3ee5e5be";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
@@ -35,13 +35,10 @@ const themes = [
 const StoryGenerator: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(DEFAULT_API_KEY);
   const [stabilityApiKey, setStabilityApiKey] = useState<string>(DEFAULT_STABILITY_KEY);
-  const [masterpiecexApiKey, setMasterpiecexApiKey] = useState<string>(DEFAULT_MASTERPIECEX_KEY);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
-  const [modelLoading, setModelLoading] = useState(false);
   const [useCustomApiKey, setUseCustomApiKey] = useState(false);
   const [useCustomStabilityKey, setUseCustomStabilityKey] = useState(false);
-  const [useCustomMasterpiecexKey, setUseCustomMasterpiecexKey] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -50,55 +47,12 @@ const StoryGenerator: React.FC = () => {
   });
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [generatedModel, setGeneratedModel] = useState<Model3DResponse | null>(null);
   const [activeTab, setActiveTab] = useState<string>("create");
   const [customImagePrompt, setCustomImagePrompt] = useState<string>("");
-  const [customModelPrompt, setCustomModelPrompt] = useState<string>("");
   const [showArcsView, setShowArcsView] = useState<boolean>(true);
-  const [modelTaskId, setModelTaskId] = useState<string | null>(null);
-  const [modelPollingInterval, setModelPollingInterval] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (modelTaskId) {
-      const interval = window.setInterval(async () => {
-        try {
-          const mpxKey = useCustomMasterpiecexKey ? masterpiecexApiKey : DEFAULT_MASTERPIECEX_KEY;
-          const status = await checkModelStatus(modelTaskId, mpxKey);
-          
-          if (status.error) {
-            clearInterval(interval);
-            setModelLoading(false);
-            setModelTaskId(null);
-            toast({
-              title: "Model Generation Failed",
-              description: status.error,
-              variant: "destructive",
-            });
-          } else if (status.modelUrl) {
-            clearInterval(interval);
-            setModelLoading(false);
-            setModelTaskId(null);
-            setGeneratedModel(status);
-            toast({
-              title: "3D Model Generated",
-              description: "Your mythological character has been modeled in 3D",
-            });
-          }
-        } catch (error) {
-          console.error("Error polling model status:", error);
-          clearInterval(interval);
-          setModelLoading(false);
-          setModelTaskId(null);
-        }
-      }, 10000);
-      
-      setModelPollingInterval(interval);
-      
-      return () => {
-        if (interval) clearInterval(interval);
-      };
-    }
-  }, [modelTaskId, masterpiecexApiKey, useCustomMasterpiecexKey]);
+  const [savedStories, setSavedStories] = useState<StoryResponse[]>(
+    JSON.parse(localStorage.getItem('savedStories') || '[]')
+  );
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -209,76 +163,17 @@ const StoryGenerator: React.FC = () => {
     }
   };
 
-  const handleGenerateModel = async () => {
-    if (!generatedStory) {
-      toast({
-        title: "No Story Found",
-        description: "Please generate a story first before creating a 3D model",
-        variant: "destructive",
-      });
-      return;
-    }
+  const saveStory = () => {
+    if (!generatedStory) return;
     
-    const mpxKey = useCustomMasterpiecexKey ? masterpiecexApiKey : DEFAULT_MASTERPIECEX_KEY;
+    const newSavedStories = [...savedStories, generatedStory];
+    setSavedStories(newSavedStories);
+    localStorage.setItem('savedStories', JSON.stringify(newSavedStories));
     
-    if (!mpxKey) {
-      toast({
-        title: "API Key Required",
-        description: "Please enter a MasterpieceX AI API key to generate a 3D model",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setModelLoading(true);
-    try {
-      let characterPrompt;
-      if (customModelPrompt.trim() !== "") {
-        characterPrompt = customModelPrompt;
-      } else if (storyPrompt.character) {
-        characterPrompt = `${storyPrompt.character} from ${storyPrompt.mythology} mythology, full body, detailed, 3D character`;
-      } else {
-        const defaultCharacter = generatedStory.title.split(" ")[0];
-        characterPrompt = `${defaultCharacter} from ${storyPrompt.mythology} mythology, full body, detailed, 3D character`;
-      }
-      
-      console.log("Generating 3D model with prompt:", characterPrompt);
-      
-      const result = await generateModel({
-        prompt: characterPrompt,
-        apiKey: mpxKey
-      });
-      
-      if (result.error) {
-        toast({
-          title: "Model Generation Error",
-          description: result.error,
-          variant: "destructive",
-        });
-        setModelLoading(false);
-      } else if (result.taskId) {
-        setModelTaskId(result.taskId);
-        toast({
-          title: "Model Generation Started",
-          description: "Your 3D model is being created. This may take a few minutes.",
-        });
-      } else {
-        toast({
-          title: "Model Generation Error",
-          description: "No task ID was returned",
-          variant: "destructive",
-        });
-        setModelLoading(false);
-      }
-    } catch (error) {
-      console.error("Failed to generate 3D model:", error);
-      toast({
-        title: "Model Generation Failed",
-        description: "There was an error generating your 3D model. Please try again.",
-        variant: "destructive",
-      });
-      setModelLoading(false);
-    }
+    toast({
+      title: "Story Saved",
+      description: "Your story has been saved to your collection",
+    });
   };
 
   const renderStoryContent = () => {
@@ -288,7 +183,7 @@ const StoryGenerator: React.FC = () => {
       return (
         <Accordion type="single" collapsible className="w-full">
           {generatedStory.storyArcs.map((arc, index) => (
-            <AccordionItem key={index} value={`arc-${index}`}>
+            <AccordionItem key={index} value={`arc-${index}`} className="border-b border-primary/10">
               <AccordionTrigger className="text-md font-medium hover:text-primary">
                 {arc.title}
               </AccordionTrigger>
@@ -319,185 +214,187 @@ const StoryGenerator: React.FC = () => {
           <Sparkles className="h-6 w-6 text-primary animate-pulse" />
           Mythological Story Generator
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-base">
           Create authentic mythological tales with Gemini AI assistance
         </CardDescription>
       </CardHeader>
       
       <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid grid-cols-2 mx-6 my-2">
-          <TabsTrigger value="create">Create Story</TabsTrigger>
-          <TabsTrigger value="read">Read Story</TabsTrigger>
+          <TabsTrigger value="create" className="flex items-center gap-2">
+            <RefreshCcw className="h-4 w-4" />
+            Create Story
+          </TabsTrigger>
+          <TabsTrigger value="read" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Read Story
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="create" className="p-0">
-          <CardContent className="space-y-4 pt-6">
-            <div className="flex justify-end">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="use-api-key"
-                  checked={useCustomApiKey}
-                  onCheckedChange={setUseCustomApiKey}
-                />
-                <Label htmlFor="use-api-key">Use Custom API Key</Label>
+          <CardContent className="space-y-5 pt-6">
+            <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Gift className="h-5 w-5 text-primary" />
+                Story Parameters
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="mythology">Mythology</Label>
+                    <Select
+                      value={storyPrompt.mythology}
+                      onValueChange={(value) => setStoryPrompt({...storyPrompt, mythology: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a mythology" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mythologies.map((myth) => (
+                          <SelectItem key={myth} value={myth}>
+                            {myth}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="theme">Theme</Label>
+                    <Select
+                      value={storyPrompt.theme || ""}
+                      onValueChange={(value) => setStoryPrompt({...storyPrompt, theme: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {themes.map((theme) => (
+                          <SelectItem key={theme} value={theme}>
+                            {theme}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="character">Main Character (optional)</Label>
+                  <Input
+                    id="character"
+                    placeholder="e.g. Zeus, Thor, Isis..."
+                    value={storyPrompt.character || ""}
+                    onChange={(e) => setStoryPrompt({...storyPrompt, character: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="length">Story Length</Label>
+                  <div className="flex space-x-2 items-center">
+                    <Select
+                      value={storyPrompt.length || "medium"}
+                      onValueChange={(value: "short" | "medium" | "long") => 
+                        setStoryPrompt({...storyPrompt, length: value})
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select length" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="short">Short</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="long">Long</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Badge variant="outline" className="min-w-[60px] justify-center">
+                      {storyPrompt.length === "short" ? "~5 min" : 
+                       storyPrompt.length === "medium" ? "~10 min" : "~15 min"}
+                    </Badge>
+                  </div>
+                </div>
               </div>
             </div>
             
-            {useCustomApiKey && (
-              <div className="space-y-2">
-                <Label htmlFor="api-key">Gemini API Key</Label>
-                <Input
-                  id="api-key"
-                  type="password"
-                  placeholder="Enter your Gemini API key"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Your API key is only used in your browser and not stored on our servers
-                </p>
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="mythology">Mythology</Label>
-              <Select
-                value={storyPrompt.mythology}
-                onValueChange={(value) => setStoryPrompt({...storyPrompt, mythology: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a mythology" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mythologies.map((myth) => (
-                    <SelectItem key={myth} value={myth}>
-                      {myth}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="character">Main Character (optional)</Label>
-              <Input
-                id="character"
-                placeholder="e.g. Zeus, Thor, Isis..."
-                value={storyPrompt.character || ""}
-                onChange={(e) => setStoryPrompt({...storyPrompt, character: e.target.value})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="theme">Theme</Label>
-              <Select
-                value={storyPrompt.theme || ""}
-                onValueChange={(value) => setStoryPrompt({...storyPrompt, theme: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a theme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {themes.map((theme) => (
-                    <SelectItem key={theme} value={theme}>
-                      {theme}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="length">Story Length</Label>
-              <Select
-                value={storyPrompt.length || "medium"}
-                onValueChange={(value: "short" | "medium" | "long") => 
-                  setStoryPrompt({...storyPrompt, length: value})
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select length" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="short">Short</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="long">Long</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex justify-end">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="use-stability-key"
-                  checked={useCustomStabilityKey}
-                  onCheckedChange={setUseCustomStabilityKey}
-                />
-                <Label htmlFor="use-stability-key">Use Custom Stability AI Key</Label>
+            <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
+              <h3 className="text-lg font-semibold mb-3">API Settings</h3>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="use-api-key" className="font-medium">Gemini API Key</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="use-api-key"
+                      checked={useCustomApiKey}
+                      onCheckedChange={setUseCustomApiKey}
+                    />
+                    <Label htmlFor="use-api-key">Use Custom Key</Label>
+                  </div>
+                </div>
+                
+                {useCustomApiKey && (
+                  <div className="space-y-2">
+                    <Input
+                      id="api-key"
+                      type="password"
+                      placeholder="Enter your Gemini API key"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your API key is only used in your browser and not stored on our servers
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="use-stability-key" className="font-medium">Stability AI Key</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="use-stability-key"
+                      checked={useCustomStabilityKey}
+                      onCheckedChange={setUseCustomStabilityKey}
+                    />
+                    <Label htmlFor="use-stability-key">Use Custom Key</Label>
+                  </div>
+                </div>
+                
+                {useCustomStabilityKey && (
+                  <div className="space-y-2">
+                    <Input
+                      id="stability-key"
+                      type="password"
+                      placeholder="Enter your Stability AI API key"
+                      value={stabilityApiKey}
+                      onChange={(e) => setStabilityApiKey(e.target.value)}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your API key is only used in your browser and not stored on our servers
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-            
-            {useCustomStabilityKey && (
-              <div className="space-y-2">
-                <Label htmlFor="stability-key">Stability AI API Key</Label>
-                <Input
-                  id="stability-key"
-                  type="password"
-                  placeholder="Enter your Stability AI API key"
-                  value={stabilityApiKey}
-                  onChange={(e) => setStabilityApiKey(e.target.value)}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Your API key is only used in your browser and not stored on our servers
-                </p>
-              </div>
-            )}
-            
-            <div className="flex justify-end">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="use-masterpiecex-key"
-                  checked={useCustomMasterpiecexKey}
-                  onCheckedChange={setUseCustomMasterpiecexKey}
-                />
-                <Label htmlFor="use-masterpiecex-key">Use Custom MasterpieceX AI Key</Label>
-              </div>
-            </div>
-            
-            {useCustomMasterpiecexKey && (
-              <div className="space-y-2">
-                <Label htmlFor="masterpiecex-key">MasterpieceX AI API Key</Label>
-                <Input
-                  id="masterpiecex-key"
-                  type="password"
-                  placeholder="Enter your MasterpieceX AI API key"
-                  value={masterpiecexApiKey}
-                  onChange={(e) => setMasterpiecexApiKey(e.target.value)}
-                  className="font-mono"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Your API key is only used in your browser and not stored on our servers
-                </p>
-              </div>
-            )}
           </CardContent>
           
-          <CardFooter>
+          <CardFooter className="pb-6">
             <Button 
               onClick={handleGenerate} 
               disabled={loading} 
               className="w-full"
+              size="lg"
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Weaving your mythological tale...
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Sparkles className="mr-2 h-5 w-5" />
                   Generate Mythological Story
                 </>
               )}
@@ -513,36 +410,54 @@ const StoryGenerator: React.FC = () => {
                 animate={{ opacity: 1 }}
                 className="space-y-4"
               >
-                <div className="border-b pb-2">
-                  <h3 className="text-xl font-mythical text-primary">{generatedStory.title}</h3>
+                <div className="flex justify-between items-center border-b pb-4">
+                  <h3 className="text-2xl font-mythical text-primary">{generatedStory.title}</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={saveStory}
+                  >
+                    <Bookmark className="h-4 w-4" />
+                    Save Story
+                  </Button>
+                </div>
+                
+                <div className="bg-muted/30 rounded-lg p-4 flex flex-wrap gap-2">
+                  <Badge>{storyPrompt.mythology} Mythology</Badge>
+                  {storyPrompt.theme && <Badge variant="outline">{storyPrompt.theme}</Badge>}
+                  {storyPrompt.character && <Badge variant="secondary">{storyPrompt.character}</Badge>}
                 </div>
                 
                 {generatedImage ? (
-                  <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6">
+                  <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6 shadow-lg">
                     <img 
                       src={generatedImage} 
                       alt={generatedStory.title}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute bottom-2 right-2">
-                      <p className="text-xs opacity-70 bg-black/30 text-white px-2 py-1 rounded-md">
-                        Generated with Stability AI
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                      <p className="text-sm text-white font-medium">
+                        Scene from "{generatedStory.title}"
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-4 mb-6 p-4 bg-muted/30 rounded-lg border border-primary/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                        Visualize Scene
+                      </h3>
+                    </div>
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="custom-prompt">Custom Image Prompt (optional)</Label>
-                      <div className="flex gap-2">
-                        <Textarea
-                          id="custom-prompt"
-                          placeholder="Enter a specific scene or visual you'd like to generate..."
-                          value={customImagePrompt}
-                          onChange={(e) => setCustomImagePrompt(e.target.value)}
-                          className="resize-none"
-                        />
-                      </div>
+                      <Textarea
+                        placeholder="Describe a scene from your story you'd like to visualize..."
+                        value={customImagePrompt}
+                        onChange={(e) => setCustomImagePrompt(e.target.value)}
+                        className="resize-none"
+                      />
                       <p className="text-xs text-muted-foreground">
                         Describe the scene you want to visualize, or leave empty to generate based on the story
                       </p>
@@ -552,13 +467,13 @@ const StoryGenerator: React.FC = () => {
                       <Button
                         onClick={handleGenerateImage}
                         disabled={imageLoading}
-                        variant="outline"
+                        variant="secondary"
                         className="w-full sm:w-auto"
                       >
                         {imageLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating Image...
+                            Creating Scene...
                           </>
                         ) : (
                           <>
@@ -568,90 +483,6 @@ const StoryGenerator: React.FC = () => {
                         )}
                       </Button>
                     </div>
-                  </div>
-                )}
-                
-                {generatedModel && generatedModel.modelUrl ? (
-                  <div className="space-y-4 mb-6">
-                    <div className="border-t pt-4 mb-2">
-                      <h4 className="text-lg font-semibold">3D Character Model</h4>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      {generatedModel.thumbnailUrl && (
-                        <div className="relative w-full max-w-xs mb-4">
-                          <img 
-                            src={generatedModel.thumbnailUrl} 
-                            alt="3D Model Thumbnail"
-                            className="w-full h-auto rounded-md shadow-md"
-                          />
-                        </div>
-                      )}
-                      <div className="flex gap-4">
-                        <Button
-                          onClick={() => window.open(generatedModel.modelUrl, '_blank')}
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <Box className="h-4 w-4" />
-                          View 3D Model
-                        </Button>
-                        {generatedModel.glbUrl && (
-                          <Button
-                            onClick={() => window.open(generatedModel.glbUrl, '_blank')}
-                            variant="outline"
-                            className="flex items-center gap-2"
-                          >
-                            <Box className="h-4 w-4" />
-                            Download GLB
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4 mb-6 border-t pt-4">
-                    <div className="space-y-2">
-                      <h4 className="text-lg font-semibold">Generate 3D Character</h4>
-                      <Label htmlFor="custom-model-prompt">Custom Character Prompt (optional)</Label>
-                      <div className="flex gap-2">
-                        <Textarea
-                          id="custom-model-prompt"
-                          placeholder="Describe the character you want to generate in 3D..."
-                          value={customModelPrompt}
-                          onChange={(e) => setCustomModelPrompt(e.target.value)}
-                          className="resize-none"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Describe the mythological character in detail, or leave empty to generate based on the story
-                      </p>
-                    </div>
-                    
-                    <div className="flex justify-center">
-                      <Button
-                        onClick={handleGenerateModel}
-                        disabled={modelLoading}
-                        variant="outline"
-                        className="w-full sm:w-auto"
-                      >
-                        {modelLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating 3D Model...
-                          </>
-                        ) : (
-                          <>
-                            <Box className="mr-2 h-4 w-4" />
-                            Generate 3D Character
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    {modelLoading && (
-                      <p className="text-center text-sm text-muted-foreground mt-2">
-                        3D model generation can take several minutes. Please be patient.
-                      </p>
-                    )}
                   </div>
                 )}
                 
@@ -666,14 +497,23 @@ const StoryGenerator: React.FC = () => {
                   </div>
                 )}
                 
-                <ScrollArea className="h-[350px] rounded-md">
-                  {renderStoryContent()}
-                </ScrollArea>
+                <div className="bg-card rounded-lg shadow-inner p-4 border border-accent/10">
+                  <ScrollArea className="h-[350px] pr-4">
+                    {renderStoryContent()}
+                  </ScrollArea>
+                </div>
               </motion.div>
             ) : (
-              <div className="text-center p-10 text-muted-foreground">
+              <div className="text-center p-10 text-muted-foreground bg-muted/30 rounded-lg">
                 <BookOpen className="h-10 w-10 mx-auto mb-4 opacity-50" />
                 <p>Generate a story first to read it here</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => setActiveTab("create")} 
+                  className="mt-2"
+                >
+                  Go to creator
+                </Button>
               </div>
             )}
           </CardContent>
