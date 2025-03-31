@@ -11,14 +11,14 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Box } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
-import { generateModel, checkModelStatus, MeshyResponse } from "@/lib/meshy";
+import { generateModel, checkModelStatus, Model3DResponse } from "@/lib/masterpiecex";
 import { toast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
 const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
-const DEFAULT_MESHY_KEY = "msy_A95tIfxXvNXtSTzQ0b7hBCNbL8psuei8ZeVm";
+const DEFAULT_MASTERPIECEX_KEY = "zpka_0414d521d54244b5bd60b60dfcc86048_3ee5e5be";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
@@ -35,13 +35,13 @@ const themes = [
 const StoryGenerator: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>(DEFAULT_API_KEY);
   const [stabilityApiKey, setStabilityApiKey] = useState<string>(DEFAULT_STABILITY_KEY);
-  const [meshyApiKey, setMeshyApiKey] = useState<string>(DEFAULT_MESHY_KEY);
+  const [masterpiecexApiKey, setMasterpiecexApiKey] = useState<string>(DEFAULT_MASTERPIECEX_KEY);
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [modelLoading, setModelLoading] = useState(false);
   const [useCustomApiKey, setUseCustomApiKey] = useState(false);
   const [useCustomStabilityKey, setUseCustomStabilityKey] = useState(false);
-  const [useCustomMeshyKey, setUseCustomMeshyKey] = useState(false);
+  const [useCustomMasterpiecexKey, setUseCustomMasterpiecexKey] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -50,7 +50,7 @@ const StoryGenerator: React.FC = () => {
   });
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [generatedModel, setGeneratedModel] = useState<MeshyResponse | null>(null);
+  const [generatedModel, setGeneratedModel] = useState<Model3DResponse | null>(null);
   const [activeTab, setActiveTab] = useState<string>("create");
   const [customImagePrompt, setCustomImagePrompt] = useState<string>("");
   const [customModelPrompt, setCustomModelPrompt] = useState<string>("");
@@ -62,8 +62,8 @@ const StoryGenerator: React.FC = () => {
     if (modelTaskId) {
       const interval = window.setInterval(async () => {
         try {
-          const meshyKey = useCustomMeshyKey ? meshyApiKey : DEFAULT_MESHY_KEY;
-          const status = await checkModelStatus(modelTaskId, meshyKey);
+          const mpxKey = useCustomMasterpiecexKey ? masterpiecexApiKey : DEFAULT_MASTERPIECEX_KEY;
+          const status = await checkModelStatus(modelTaskId, mpxKey);
           
           if (status.error) {
             clearInterval(interval);
@@ -98,7 +98,7 @@ const StoryGenerator: React.FC = () => {
         if (interval) clearInterval(interval);
       };
     }
-  }, [modelTaskId, meshyApiKey, useCustomMeshyKey]);
+  }, [modelTaskId, masterpiecexApiKey, useCustomMasterpiecexKey]);
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -128,7 +128,7 @@ const StoryGenerator: React.FC = () => {
       } else {
         toast({
           title: "Story Generated",
-          description: `"${story.title}" has been created successfully`,
+          description: `"${story.title}" has been created successfully",
         });
         setActiveTab("read");
       }
@@ -221,12 +221,12 @@ const StoryGenerator: React.FC = () => {
       return;
     }
     
-    const meshyKey = useCustomMeshyKey ? meshyApiKey : DEFAULT_MESHY_KEY;
+    const mpxKey = useCustomMasterpiecexKey ? masterpiecexApiKey : DEFAULT_MASTERPIECEX_KEY;
     
-    if (!meshyKey) {
+    if (!mpxKey) {
       toast({
         title: "API Key Required",
-        description: "Please enter a Meshy AI API key to generate a 3D model",
+        description: "Please enter a MasterpieceX AI API key to generate a 3D model",
         variant: "destructive",
       });
       return;
@@ -248,7 +248,7 @@ const StoryGenerator: React.FC = () => {
       
       const result = await generateModel({
         prompt: characterPrompt,
-        apiKey: meshyKey
+        apiKey: mpxKey
       });
       
       console.log("Model generation result:", result);
@@ -462,23 +462,23 @@ const StoryGenerator: React.FC = () => {
             <div className="flex justify-end">
               <div className="flex items-center space-x-2">
                 <Switch
-                  id="use-meshy-key"
-                  checked={useCustomMeshyKey}
-                  onCheckedChange={setUseCustomMeshyKey}
+                  id="use-masterpiecex-key"
+                  checked={useCustomMasterpiecexKey}
+                  onCheckedChange={setUseCustomMasterpiecexKey}
                 />
-                <Label htmlFor="use-meshy-key">Use Custom Meshy AI Key</Label>
+                <Label htmlFor="use-masterpiecex-key">Use Custom MasterpieceX AI Key</Label>
               </div>
             </div>
             
-            {useCustomMeshyKey && (
+            {useCustomMasterpiecexKey && (
               <div className="space-y-2">
-                <Label htmlFor="meshy-key">Meshy AI API Key</Label>
+                <Label htmlFor="masterpiecex-key">MasterpieceX AI API Key</Label>
                 <Input
-                  id="meshy-key"
+                  id="masterpiecex-key"
                   type="password"
-                  placeholder="Enter your Meshy AI API key"
-                  value={meshyApiKey}
-                  onChange={(e) => setMeshyApiKey(e.target.value)}
+                  placeholder="Enter your MasterpieceX AI API key"
+                  value={masterpiecexApiKey}
+                  onChange={(e) => setMasterpiecexApiKey(e.target.value)}
                   className="font-mono"
                 />
                 <p className="text-xs text-muted-foreground">

@@ -1,17 +1,17 @@
 
 import { toast } from "@/components/ui/use-toast";
 
-const MESHY_API_URL = "https://api.meshy.ai/v2/text-to-3d";
-const DEFAULT_MESHY_KEY = "msy_A95tIfxXvNXtSTzQ0b7hBCNbL8psuei8ZeVm";
+const MASTERPIECEX_API_URL = "https://api.masterpiecex.com/v1/image";
+const DEFAULT_MASTERPIECEX_KEY = "zpka_0414d521d54244b5bd60b60dfcc86048_3ee5e5be";
 
-export type ModelGenerationParams = {
+export type Model3DGenerationParams = {
   prompt: string;
   apiKey?: string;
   style?: string;
   negative_prompt?: string;
 };
 
-export interface MeshyResponse {
+export interface Model3DResponse {
   modelUrl?: string;
   glbUrl?: string;
   thumbnailUrl?: string;
@@ -20,11 +20,11 @@ export interface MeshyResponse {
   status?: string;
 }
 
-export async function generateModel(params: ModelGenerationParams): Promise<MeshyResponse> {
+export async function generateModel(params: Model3DGenerationParams): Promise<Model3DResponse> {
   try {
     const { 
       prompt, 
-      apiKey = DEFAULT_MESHY_KEY, 
+      apiKey = DEFAULT_MASTERPIECEX_KEY, 
       style = "realistic", 
       negative_prompt = "blurry, distorted, low quality" 
     } = params;
@@ -37,13 +37,13 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
       throw new Error("Character prompt is required");
     }
 
-    console.log("Sending request to Meshy AI API with:", {
+    console.log("Sending request to MasterpieceX AI API with:", {
       prompt,
       apiKey: apiKey.substring(0, 5) + "...",
       style
     });
 
-    const response = await fetch(MESHY_API_URL, {
+    const response = await fetch(MASTERPIECEX_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -51,12 +51,12 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
       },
       body: JSON.stringify({
         prompt,
-        style,
         negative_prompt,
+        model: "masterpiece-3d-v1.0",
       }),
     });
 
-    console.log("Meshy AI API response status:", response.status);
+    console.log("MasterpieceX AI API response status:", response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -65,18 +65,18 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
       try {
         // Try to parse as JSON to get more details
         const errorData = JSON.parse(errorText);
-        console.error("Meshy API error response:", errorData);
+        console.error("MasterpieceX API error response:", errorData);
         errorMessage = errorData.message || errorData.error || errorMessage;
       } catch (jsonError) {
         // If not valid JSON, log the raw text
-        console.error("Meshy API error (non-JSON):", errorText);
+        console.error("MasterpieceX API error (non-JSON):", errorText);
       }
       
       throw new Error(errorMessage);
     }
     
     const responseData = await response.json();
-    console.log("Meshy AI response data:", responseData);
+    console.log("MasterpieceX AI response data:", responseData);
 
     // Initial response contains a task ID which we need to poll for the result
     if (responseData.id) {
@@ -85,7 +85,7 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
         status: responseData.status || "processing" 
       };
     } else {
-      throw new Error("No task ID was returned from Meshy API");
+      throw new Error("No task ID was returned from MasterpieceX API");
     }
   } catch (error) {
     console.error("Error generating 3D model:", error);
@@ -101,15 +101,15 @@ export async function generateModel(params: ModelGenerationParams): Promise<Mesh
   }
 }
 
-export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_MESHY_KEY): Promise<MeshyResponse> {
+export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_MASTERPIECEX_KEY): Promise<Model3DResponse> {
   try {
     if (!taskId) {
       throw new Error("Task ID is required");
     }
     
-    console.log(`Checking status for Meshy task: ${taskId}`);
+    console.log(`Checking status for MasterpieceX task: ${taskId}`);
     
-    const response = await fetch(`https://api.meshy.ai/v2/text-to-3d/${taskId}`, {
+    const response = await fetch(`${MASTERPIECEX_API_URL}/${taskId}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -117,7 +117,7 @@ export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_
       },
     });
 
-    console.log("Meshy AI status check response status:", response.status);
+    console.log("MasterpieceX AI status check response status:", response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -126,27 +126,27 @@ export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_
       try {
         // Try to parse as JSON to get more details
         const errorData = JSON.parse(errorText);
-        console.error("Meshy API status check error:", errorData);
+        console.error("MasterpieceX API status check error:", errorData);
         errorMessage = errorData.message || errorData.error || errorMessage;
       } catch (jsonError) {
         // If not valid JSON, log the raw text
-        console.error("Meshy API status check error (non-JSON):", errorText);
+        console.error("MasterpieceX API status check error (non-JSON):", errorText);
       }
       
       throw new Error(errorMessage);
     }
 
     const responseData = await response.json();
-    console.log("Meshy AI status check response data:", responseData);
+    console.log("MasterpieceX AI status check response data:", responseData);
 
     if (responseData.status === "completed" || responseData.status === "succeeded") {
       // For the newer API version, output is nested inside the output property
       const output = responseData.output || responseData;
       
       return {
-        modelUrl: output.viewer_url,
-        glbUrl: output.glb,
-        thumbnailUrl: output.thumbnail,
+        modelUrl: output.viewer_url || output.html_url,
+        glbUrl: output.glb_url || output.download_url,
+        thumbnailUrl: output.thumbnail || output.image_url,
         status: responseData.status
       };
     } else if (responseData.status === "failed") {
