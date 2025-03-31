@@ -1,7 +1,8 @@
 
 import { toast } from "@/components/ui/use-toast";
 
-const MASTERPIECEX_API_URL = "https://api.masterpiecex.com/v1/image";
+// Update API URL to the correct endpoint
+const MASTERPIECEX_API_URL = "https://api.masterpiecex.com/v1/generate";
 const DEFAULT_MASTERPIECEX_KEY = "zpka_0414d521d54244b5bd60b60dfcc86048_3ee5e5be";
 
 export type Model3DGenerationParams = {
@@ -43,6 +44,7 @@ export async function generateModel(params: Model3DGenerationParams): Promise<Mo
       style
     });
 
+    // Updated endpoint URL
     const response = await fetch(MASTERPIECEX_API_URL, {
       method: "POST",
       headers: {
@@ -109,7 +111,8 @@ export async function checkModelStatus(taskId: string, apiKey: string = DEFAULT_
     
     console.log(`Checking status for MasterpieceX task: ${taskId}`);
     
-    const response = await fetch(`${MASTERPIECEX_API_URL}/${taskId}`, {
+    // Updated status check URL to match the new endpoint pattern
+    const response = await fetch(`${MASTERPIECEX_API_URL}/status/${taskId}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
