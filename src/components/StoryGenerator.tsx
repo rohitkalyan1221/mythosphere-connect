@@ -128,7 +128,7 @@ const StoryGenerator: React.FC = () => {
       } else {
         toast({
           title: "Story Generated",
-          description: `"${story.title}" has been created successfully",
+          description: `"${story.title}" has been created successfully`,
         });
         setActiveTab("read");
       }
@@ -177,8 +177,6 @@ const StoryGenerator: React.FC = () => {
         prompt: imagePrompt,
         apiKey: stabilityKey
       });
-      
-      console.log("Image generation result:", result);
       
       if (result.error) {
         toast({
@@ -250,8 +248,6 @@ const StoryGenerator: React.FC = () => {
         prompt: characterPrompt,
         apiKey: mpxKey
       });
-      
-      console.log("Model generation result:", result);
       
       if (result.error) {
         toast({
