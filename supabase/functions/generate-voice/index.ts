@@ -34,6 +34,9 @@ serve(async (req) => {
       );
     }
 
+    console.log(`Generating voice with ElevenLabs API for text: ${text.substring(0, 50)}...`);
+    console.log(`Using voice ID: ${voice}, model: ${model}`);
+
     // Call ElevenLabs API to generate audio
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
@@ -76,6 +79,8 @@ serve(async (req) => {
     const base64Audio = btoa(
       String.fromCharCode(...new Uint8Array(audioArrayBuffer))
     );
+
+    console.log("Voice generation successful, returning audio content");
 
     return new Response(
       JSON.stringify({ 

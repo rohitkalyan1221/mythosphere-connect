@@ -6,6 +6,7 @@ import { ArrowRight, Users, MessageSquare, BookOpen, Sparkles, MapPin, Compass, 
 import FeatureCard from './FeatureCard';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 
 const CommunitySection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'featured' | 'popular' | 'new'>('featured');
@@ -219,10 +220,13 @@ const CommunitySection: React.FC = () => {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.5, delay: 0.4 }}
             >
-              <Button size="lg" className="rounded-full px-6 group">
-                Join the Community
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Button>
+              {/* Changed to Link component with to="/community" */}
+              <Link to="/community">
+                <Button size="lg" className="rounded-full px-6 group">
+                  Join the Community
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
             </motion.div>
           </motion.div>
           
