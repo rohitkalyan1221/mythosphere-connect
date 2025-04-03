@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Bookmark, RefreshCcw, Gift, Volume2, Pause, Play, Mic, MicOff } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -65,22 +65,18 @@ const StoryGenerator: React.FC = () => {
     JSON.parse(localStorage.getItem('savedStories') || '[]')
   );
   
-  // New state for speech recognition
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [recognitionSupported, setRecognitionSupported] = useState(false);
   
-  // Speech synthesis related refs
   const speechSynthesis = useRef<SpeechSynthesis | null>(null);
   const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
   const recognition = useRef<SpeechRecognition | null>(null);
   
-  // Check if speech recognition is supported
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       setRecognitionSupported(true);
       
-      // Set up recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition.current = new SpeechRecognition();
       recognition.current.continuous = true;
@@ -113,13 +109,11 @@ const StoryGenerator: React.FC = () => {
       };
     }
     
-    // Set up speech synthesis
     if ('speechSynthesis' in window) {
       speechSynthesis.current = window.speechSynthesis;
     }
     
     return () => {
-      // Cleanup
       if (recognition.current) {
         recognition.current.stop();
       }
@@ -155,7 +149,6 @@ const StoryGenerator: React.FC = () => {
   
   const useTranscriptAsPrompt = () => {
     if (transcript.trim()) {
-      // Extract mythology and theme from transcript if possible
       const mythologyMatch = mythologies.find(m => 
         transcript.toLowerCase().includes(m.toLowerCase())
       );
@@ -299,7 +292,6 @@ const StoryGenerator: React.FC = () => {
     
     setVoiceLoading(true);
     try {
-      // Stop any current speech
       if (speechSynthesis.current) {
         speechSynthesis.current.cancel();
         setIsPlaying(false);
@@ -311,10 +303,8 @@ const StoryGenerator: React.FC = () => {
         
       setVoiceProgress(50);
       
-      // Create a new SpeechSynthesisUtterance
       speechUtterance.current = new SpeechSynthesisUtterance(textToNarrate);
       
-      // Set voice based on selection
       if (speechSynthesis.current) {
         const voices = speechSynthesis.current.getVoices();
         
@@ -338,7 +328,6 @@ const StoryGenerator: React.FC = () => {
         }
       }
       
-      // Set up events
       speechUtterance.current.onstart = () => {
         setIsPlaying(true);
       };
@@ -359,7 +348,6 @@ const StoryGenerator: React.FC = () => {
       
       setVoiceProgress(100);
       
-      // Start speech
       if (speechSynthesis.current) {
         speechSynthesis.current.speak(speechUtterance.current);
       }
@@ -471,7 +459,6 @@ const StoryGenerator: React.FC = () => {
         
         <TabsContent value="create" className="p-0">
           <CardContent className="space-y-5 pt-6">
-            {/* Speech to text section */}
             <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Mic className="h-5 w-5 text-primary" />
@@ -930,3 +917,17 @@ const StoryGenerator: React.FC = () => {
                 <p>Generate a story first to read it here</p>
                 <Button 
                   variant="link"
+                >
+                  <MessageSquare className="h-5 w-5" />
+                  Generate Story
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </TabsContent>
+      </Tabs>
+    </Card>
+  );
+};
+
+export default StoryGenerator;
