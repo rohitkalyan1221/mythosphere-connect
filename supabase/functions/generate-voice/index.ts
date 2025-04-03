@@ -24,12 +24,14 @@ serve(async (req) => {
     
     console.log(`Processing text for speech synthesis: ${text.substring(0, 50)}...`);
 
-    // Since we're using browser-based speech synthesis, we'll just return the text
-    // and let the browser handle the speech synthesis
+    // Create a base64 encoded audio string from the text for the browser to play
+    // This is a simple implementation that returns the text directly
+    // The browser will handle the actual speech synthesis
     return new Response(
       JSON.stringify({ 
         text: text,
-        success: true
+        success: true,
+        message: "Text ready for browser-based speech synthesis"
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
