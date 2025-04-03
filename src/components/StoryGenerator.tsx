@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,7 +213,13 @@ const StoryGenerator: React.FC = () => {
       setVoiceProgress(80);
       
       if (error || !data) {
+        console.error("Error from edge function:", error);
         throw new Error(error?.message || "Failed to generate audio narration");
+      }
+      
+      if (!data.audioContent) {
+        console.error("No audio content returned:", data);
+        throw new Error("No audio content was returned from the service");
       }
       
       setVoiceProgress(100);

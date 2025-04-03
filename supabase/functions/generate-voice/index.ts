@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Set your ElevenLabs API key
+const ELEVEN_LABS_API_KEY = "sk_e50f28a3a5ea815ef6ae3efde098d9013f49c7851deb217e";
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -26,25 +29,17 @@ serve(async (req) => {
     const voice = voiceId || "EXAVITQu4vr4xnSDxMaL"; // Sarah voice
     const model = modelId || "eleven_turbo_v2";
     
-    const API_KEY = Deno.env.get("ELEVEN_LABS_API_KEY");
-    if (!API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     console.log(`Generating voice with ElevenLabs API for text: ${text.substring(0, 50)}...`);
     console.log(`Using voice ID: ${voice}, model: ${model}`);
 
-    // Call ElevenLabs API to generate audio
+    // Call ElevenLabs API to generate audio using hardcoded API key
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "xi-api-key": API_KEY,
+          "xi-api-key": ELEVEN_LABS_API_KEY,
         },
         body: JSON.stringify({
           text: text,
