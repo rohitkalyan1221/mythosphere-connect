@@ -6,9 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Set your ElevenLabs API key
-const ELEVEN_LABS_API_KEY = "sk_e50f28a3a5ea815ef6ae3efde098d9013f49c7851deb217e";
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId, modelId } = await req.json();
+    const { text } = await req.json();
     
     if (!text) {
       return new Response(
@@ -24,63 +21,15 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Use default values if not provided
-    const voice = voiceId || "EXAVITQu4vr4xnSDxMaL"; // Sarah voice
-    const model = modelId || "eleven_turbo_v2";
     
-    console.log(`Generating voice with ElevenLabs API for text: ${text.substring(0, 50)}...`);
-    console.log(`Using voice ID: ${voice}, model: ${model}`);
+    console.log(`Processing text for speech synthesis: ${text.substring(0, 50)}...`);
 
-    // Call ElevenLabs API to generate audio using hardcoded API key
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voice}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "xi-api-key": ELEVEN_LABS_API_KEY,
-        },
-        body: JSON.stringify({
-          text: text,
-          model_id: model,
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("ElevenLabs API error:", errorData);
-      return new Response(
-        JSON.stringify({ 
-          error: "Failed to generate audio", 
-          details: errorData 
-        }),
-        { 
-          status: response.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Get the audio data as an ArrayBuffer
-    const audioArrayBuffer = await response.arrayBuffer();
-    
-    // Convert to base64 for safe transmission
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(audioArrayBuffer))
-    );
-
-    console.log("Voice generation successful, returning audio content");
-
+    // Since we're using browser-based speech synthesis, we'll just return the text
+    // and let the browser handle the speech synthesis
     return new Response(
       JSON.stringify({ 
-        audioContent: base64Audio,
-        format: "mp3"
+        text: text,
+        success: true
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

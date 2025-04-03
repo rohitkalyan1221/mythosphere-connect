@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Bookmark, RefreshCcw, Gift, Volume2, Pause, Play } from "lucide-react";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Bookmark, RefreshCcw, Gift, Volume2, Pause, Play, Mic, MicOff } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
 import { toast } from "@/components/ui/use-toast";
@@ -22,12 +22,9 @@ const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
 const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
 
 const voices = [
-  { id: "EXAVITQu4vr4xnSDxMaL", name: "Sarah (Female)" },
-  { id: "IKne3meq5aSn9XLyUdCD", name: "Charlie (Male)" },
-  { id: "XB0fDUnXU5powFXDhCwa", name: "Charlotte (Female)" },
-  { id: "Xb7hH8MSUJpSbSDYk0k2", name: "Alice (Female)" },
-  { id: "bIHbv24MWmeRgasZH58o", name: "Will (Male)" },
-  { id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel (Male)" },
+  { id: "default", name: "Default" },
+  { id: "female", name: "Female" },
+  { id: "male", name: "Male" }
 ];
 
 const mythologies = [
@@ -58,18 +55,128 @@ const StoryGenerator: React.FC = () => {
   });
   const [generatedStory, setGeneratedStory] = useState<StoryResponse | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [audioContent, setAudioContent] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("create");
   const [customImagePrompt, setCustomImagePrompt] = useState<string>("");
   const [showArcsView, setShowArcsView] = useState<boolean>(true);
-  const [selectedVoice, setSelectedVoice] = useState<string>("EXAVITQu4vr4xnSDxMaL");
+  const [selectedVoice, setSelectedVoice] = useState<string>("default");
   const [voiceProgress, setVoiceProgress] = useState<number>(0);
   const [savedStories, setSavedStories] = useState<StoryResponse[]>(
     JSON.parse(localStorage.getItem('savedStories') || '[]')
   );
   
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // New state for speech recognition
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [recognitionSupported, setRecognitionSupported] = useState(false);
+  
+  // Speech synthesis related refs
+  const speechSynthesis = useRef<SpeechSynthesis | null>(null);
+  const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
+  const recognition = useRef<SpeechRecognition | null>(null);
+  
+  // Check if speech recognition is supported
+  useEffect(() => {
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      setRecognitionSupported(true);
+      
+      // Set up recognition
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition.current = new SpeechRecognition();
+      recognition.current.continuous = true;
+      recognition.current.interimResults = true;
+      
+      recognition.current.onresult = (event) => {
+        const current = event.resultIndex;
+        const result = event.results[current];
+        const transcript = result[0].transcript;
+        
+        if (result.isFinal) {
+          setTranscript(prevTranscript => prevTranscript + ' ' + transcript);
+        }
+      };
+      
+      recognition.current.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        setIsListening(false);
+        toast({
+          title: "Recognition Error",
+          description: `Error: ${event.error}`,
+          variant: "destructive",
+        });
+      };
+      
+      recognition.current.onend = () => {
+        if (isListening) {
+          recognition.current?.start();
+        }
+      };
+    }
+    
+    // Set up speech synthesis
+    if ('speechSynthesis' in window) {
+      speechSynthesis.current = window.speechSynthesis;
+    }
+    
+    return () => {
+      // Cleanup
+      if (recognition.current) {
+        recognition.current.stop();
+      }
+      if (speechSynthesis.current && speechUtterance.current) {
+        speechSynthesis.current.cancel();
+      }
+    };
+  }, [isListening]);
+  
+  const toggleListening = () => {
+    if (!recognitionSupported) {
+      toast({
+        title: "Not Supported",
+        description: "Speech recognition is not supported in your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (isListening) {
+      if (recognition.current) {
+        recognition.current.stop();
+      }
+      setIsListening(false);
+    } else {
+      setTranscript("");
+      if (recognition.current) {
+        recognition.current.start();
+      }
+      setIsListening(true);
+    }
+  };
+  
+  const useTranscriptAsPrompt = () => {
+    if (transcript.trim()) {
+      // Extract mythology and theme from transcript if possible
+      const mythologyMatch = mythologies.find(m => 
+        transcript.toLowerCase().includes(m.toLowerCase())
+      );
+      
+      const themeMatch = themes.find(t => 
+        transcript.toLowerCase().includes(t.toLowerCase())
+      );
+      
+      setStoryPrompt(prev => ({
+        ...prev,
+        mythology: mythologyMatch || prev.mythology,
+        theme: themeMatch || prev.theme,
+        character: transcript.trim()
+      }));
+      
+      toast({
+        title: "Prompt Updated",
+        description: "Your spoken text has been added to the story prompt",
+      });
+    }
+  };
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -192,8 +299,9 @@ const StoryGenerator: React.FC = () => {
     
     setVoiceLoading(true);
     try {
-      if (audioRef.current) {
-        audioRef.current.pause();
+      // Stop any current speech
+      if (speechSynthesis.current) {
+        speechSynthesis.current.cancel();
         setIsPlaying(false);
       }
       
@@ -201,51 +309,64 @@ const StoryGenerator: React.FC = () => {
         ? generatedStory.storyArcs.map(arc => `${arc.title}. ${arc.content}`).join(' ')
         : generatedStory.story;
         
-      setVoiceProgress(10);
+      setVoiceProgress(50);
       
-      const { data, error } = await supabase.functions.invoke('generate-voice', {
-        body: {
-          text: textToNarrate,
-          voiceId: selectedVoice
+      // Create a new SpeechSynthesisUtterance
+      speechUtterance.current = new SpeechSynthesisUtterance(textToNarrate);
+      
+      // Set voice based on selection
+      if (speechSynthesis.current) {
+        const voices = speechSynthesis.current.getVoices();
+        
+        if (voices.length > 0) {
+          let selectedSynthVoice;
+          
+          switch (selectedVoice) {
+            case 'female':
+              selectedSynthVoice = voices.find(voice => voice.name.includes('female') || voice.name.includes('woman'));
+              break;
+            case 'male':
+              selectedSynthVoice = voices.find(voice => voice.name.includes('male') || voice.name.includes('man'));
+              break;
+            default:
+              selectedSynthVoice = voices[0];
+          }
+          
+          if (selectedSynthVoice) {
+            speechUtterance.current.voice = selectedSynthVoice;
+          }
         }
-      });
-      
-      setVoiceProgress(80);
-      
-      if (error || !data) {
-        console.error("Error from edge function:", error);
-        throw new Error(error?.message || "Failed to generate audio narration");
       }
       
-      if (!data.audioContent) {
-        console.error("No audio content returned:", data);
-        throw new Error("No audio content was returned from the service");
-      }
+      // Set up events
+      speechUtterance.current.onstart = () => {
+        setIsPlaying(true);
+      };
+      
+      speechUtterance.current.onend = () => {
+        setIsPlaying(false);
+      };
+      
+      speechUtterance.current.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setIsPlaying(false);
+        toast({
+          title: "Speech Error",
+          description: "There was an error during speech synthesis",
+          variant: "destructive",
+        });
+      };
       
       setVoiceProgress(100);
       
-      setAudioContent(data.audioContent);
-      
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.src = `data:audio/mp3;base64,${data.audioContent}`;
-          audioRef.current.load();
-          audioRef.current.play().then(() => {
-            setIsPlaying(true);
-          }).catch(err => {
-            console.error("Error playing audio:", err);
-            toast({
-              title: "Playback Error",
-              description: "There was an error playing the audio",
-              variant: "destructive",
-            });
-          });
-        }
-      }, 500);
+      // Start speech
+      if (speechSynthesis.current) {
+        speechSynthesis.current.speak(speechUtterance.current);
+      }
       
       toast({
         title: "Narration Created",
-        description: "Your mythological story has been narrated",
+        description: "Your mythological story is being narrated",
       });
     } catch (error) {
       console.error("Failed to generate voice narration:", error);
@@ -261,25 +382,26 @@ const StoryGenerator: React.FC = () => {
   };
 
   const togglePlayPause = () => {
-    if (!audioRef.current || !audioContent) return;
+    if (!speechSynthesis.current) return;
     
     if (isPlaying) {
-      audioRef.current.pause();
+      speechSynthesis.current.pause();
+      setIsPlaying(false);
     } else {
-      audioRef.current.play().catch(err => {
-        console.error("Error playing audio:", err);
-      });
+      if (speechSynthesis.current.paused) {
+        speechSynthesis.current.resume();
+      } else if (speechUtterance.current) {
+        speechSynthesis.current.speak(speechUtterance.current);
+      }
+      setIsPlaying(true);
     }
-    
-    setIsPlaying(!isPlaying);
   };
 
   const saveStory = () => {
     if (!generatedStory) return;
     
     const storyToSave = {
-      ...generatedStory,
-      audioContent: audioContent
+      ...generatedStory
     };
     
     const newSavedStories = [...savedStories, storyToSave];
@@ -349,6 +471,59 @@ const StoryGenerator: React.FC = () => {
         
         <TabsContent value="create" className="p-0">
           <CardContent className="space-y-5 pt-6">
+            {/* Speech to text section */}
+            <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                Voice Input
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Speak your story ideas</Label>
+                    <Button 
+                      variant={isListening ? "destructive" : "outline"} 
+                      size="sm"
+                      onClick={toggleListening}
+                      className="flex items-center gap-2"
+                      disabled={!recognitionSupported}
+                    >
+                      {isListening ? (
+                        <>
+                          <MicOff className="h-4 w-4" />
+                          Stop Listening
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="h-4 w-4" />
+                          Start Listening
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <Textarea 
+                    placeholder={recognitionSupported ? "Your spoken text will appear here..." : "Speech recognition is not supported in your browser"}
+                    value={transcript}
+                    onChange={e => setTranscript(e.target.value)}
+                    className={`min-h-[100px] ${isListening ? 'border-primary' : ''}`}
+                  />
+                  
+                  {transcript && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={useTranscriptAsPrompt}
+                      className="self-end"
+                    >
+                      Use as Prompt
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+            
             <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Gift className="h-5 w-5 text-primary" />
@@ -397,10 +572,10 @@ const StoryGenerator: React.FC = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="character">Main Character (optional)</Label>
+                  <Label htmlFor="character">Main Character or Story Idea</Label>
                   <Input
                     id="character"
-                    placeholder="e.g. Zeus, Thor, Isis..."
+                    placeholder="e.g. Zeus, Thor, Isis or describe your story idea"
                     value={storyPrompt.character || ""}
                     onChange={(e) => setStoryPrompt({...storyPrompt, character: e.target.value})}
                   />
@@ -560,7 +735,7 @@ const StoryGenerator: React.FC = () => {
                 <div className="flex justify-between items-center border-b pb-4">
                   <h3 className="text-2xl font-mythical text-primary">{generatedStory.title}</h3>
                   <div className="flex gap-2">
-                    {audioContent ? (
+                    {isPlaying !== null && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -579,7 +754,7 @@ const StoryGenerator: React.FC = () => {
                           </>
                         )}
                       </Button>
-                    ) : null}
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -597,69 +772,59 @@ const StoryGenerator: React.FC = () => {
                   {storyPrompt.theme && <Badge variant="outline">{storyPrompt.theme}</Badge>}
                   {storyPrompt.character && <Badge variant="secondary">{storyPrompt.character}</Badge>}
                 </div>
-                
-                <audio 
-                  ref={audioRef}
-                  style={{ display: 'none' }}
-                  onEnded={() => setIsPlaying(false)}
-                  onPause={() => setIsPlaying(false)}
-                  onPlay={() => setIsPlaying(true)}
-                />
 
-                {!audioContent && (
-                  <div className="space-y-4 mb-6 p-4 bg-muted/30 rounded-lg border border-primary/10">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold flex items-center gap-2">
-                        <Volume2 className="h-4 w-4 text-primary" />
-                        Generate Voice Narration
-                      </h3>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="narration-voice" className="min-w-[80px]">Voice:</Label>
-                        <Select
-                          value={selectedVoice}
-                          onValueChange={setSelectedVoice}
-                        >
-                          <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Select a voice" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {voices.map((voice) => (
-                              <SelectItem key={voice.id} value={voice.id}>
-                                {voice.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    {voiceProgress > 0 && <Progress value={voiceProgress} className="h-2" />}
-                    
-                    <div className="flex justify-center">
-                      <Button
-                        onClick={handleGenerateVoice}
-                        disabled={voiceLoading}
-                        variant="secondary"
-                        className="w-full sm:w-auto"
+                <div className="space-y-4 mb-6 p-4 bg-muted/30 rounded-lg border border-primary/10">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Volume2 className="h-4 w-4 text-primary" />
+                      Generate Voice Narration
+                    </h3>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="narration-voice" className="min-w-[80px]">Voice:</Label>
+                      <Select
+                        value={selectedVoice}
+                        onValueChange={setSelectedVoice}
                       >
-                        {voiceLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creating Narration...
-                          </>
-                        ) : (
-                          <>
-                            <Volume2 className="mr-2 h-4 w-4" />
-                            Generate Audio Narration
-                          </>
-                        )}
-                      </Button>
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select a voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {voices.map((voice) => (
+                            <SelectItem key={voice.id} value={voice.id}>
+                              {voice.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                )}
+                  
+                  {voiceProgress > 0 && <Progress value={voiceProgress} className="h-2" />}
+                  
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={handleGenerateVoice}
+                      disabled={voiceLoading}
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                    >
+                      {voiceLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating Narration...
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Generate Audio Narration
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
 
                 {generatedImage ? (
                   <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6 shadow-lg">
@@ -718,7 +883,7 @@ const StoryGenerator: React.FC = () => {
                   </div>
                 )}
                 
-                {audioContent && (
+                {isPlaying !== null && (
                   <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Button
@@ -764,19 +929,4 @@ const StoryGenerator: React.FC = () => {
                 <BookOpen className="h-10 w-10 mx-auto mb-4 opacity-50" />
                 <p>Generate a story first to read it here</p>
                 <Button 
-                  variant="link" 
-                  onClick={() => setActiveTab("create")} 
-                  className="mt-2"
-                >
-                  Go to creator
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </TabsContent>
-      </Tabs>
-    </Card>
-  );
-};
-
-export default StoryGenerator;
+                  variant="link"
