@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,7 +111,7 @@ const StoryGenerator: React.FC = () => {
       } else {
         toast({
           title: "Story Generated",
-          description: `"${story.title}" has been created successfully`,
+          description: `"${story.title}" has been created successfully",
         });
         setActiveTab("read");
       }
@@ -307,6 +306,7 @@ const StoryGenerator: React.FC = () => {
     
     const storyToSave = {
       ...generatedStory,
+      storyPrompt: storyPrompt,
       savedAt: new Date().toISOString()
     };
     
@@ -322,7 +322,7 @@ const StoryGenerator: React.FC = () => {
 
   const loadSavedStory = (story: StoryResponse) => {
     setSelectedSavedStory(story);
-    setGeneratedImage(null); // Reset image when loading a new story
+    setGeneratedImage(null);
     setCustomImagePrompt("");
     
     toast({

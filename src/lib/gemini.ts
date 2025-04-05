@@ -20,6 +20,8 @@ export type StoryResponse = {
   title: string;
   storyArcs?: StoryArc[];
   error?: string;
+  storyPrompt?: StoryPrompt;  // Added this property
+  savedAt?: string;           // Added this property
 };
 
 export async function generateStory(
@@ -87,12 +89,14 @@ export async function generateStory(
           title: storyData.title || "Untitled Story",
           story: storyData.story || text,
           storyArcs: storyData.storyArcs || [],
+          storyPrompt: prompt  // Include the original prompt in the response
         };
       } else {
         // Fallback if no JSON is found
         return {
           title: "Mythological Tale",
           story: text,
+          storyPrompt: prompt  // Include the original prompt in the response
         };
       }
     } catch (parseError) {
@@ -100,6 +104,7 @@ export async function generateStory(
       return {
         title: "Mythological Tale",
         story: text,
+        storyPrompt: prompt  // Include the original prompt in the response
       };
     }
   } catch (error) {
@@ -113,6 +118,7 @@ export async function generateStory(
       title: "",
       story: "",
       error: error instanceof Error ? error.message : "Unknown error occurred",
+      storyPrompt: prompt  // Include the original prompt in the response
     };
   }
 }
