@@ -3,8 +3,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
-import StoryGenerator from '../components/StoryGenerator';
-import { Scroll, BookOpen, Feather, Sparkles, Lightbulb, CircleHelp, Volume2, Music, Headphones } from 'lucide-react';
+import StoryGenerator from '../components/story-generator/StoryGenerator';
+import { Scroll, BookOpen, Feather, Sparkles, Lightbulb, Volume2, Music, Headphones } from 'lucide-react';
 
 const StoryPage: React.FC = () => {
   return (
