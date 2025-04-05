@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
 import StoryGenerator from '../components/story-generator/StoryGenerator';
-import { Scroll, BookOpen, Feather, Sparkles, Lightbulb, Volume2, Music, Headphones } from 'lucide-react';
+import { Scroll, BookOpen, Feather, Sparkles, Lightbulb, Compass, Users, MessageSquare } from 'lucide-react';
 
 const StoryPage: React.FC = () => {
   return (
@@ -39,7 +39,7 @@ const StoryPage: React.FC = () => {
             
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
               Unleash the power of AI to craft authentic mythological stories from cultures around the world.
-              Explore ancient narratives or create your own legendary tales with audio narration.
+              Explore ancient narratives or create your own legendary tales.
             </p>
           </motion.div>
 
@@ -73,10 +73,10 @@ const StoryPage: React.FC = () => {
               
               <div className="glass p-6 rounded-xl mythical-border hover:shadow-lg transition-shadow duration-300 hover:-translate-y-1 transform transition-transform">
                 <div className="flex items-center mb-3 text-primary">
-                  <Volume2 className="h-5 w-5 mr-2" />
-                  <h3 className="text-lg font-semibold">Voice Narration</h3>
+                  <Compass className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-semibold">Quest Generation</h3>
                 </div>
-                <p className="text-muted-foreground">Listen to your mythological tales in high-quality AI voices that bring your stories to life as immersive audiobook experiences.</p>
+                <p className="text-muted-foreground">AI suggests unique quests with objectives, obstacles, and narrative twists that complement your mythological setting.</p>
               </div>
               
               <div className="glass p-6 rounded-xl mythical-border hover:shadow-lg transition-shadow duration-300 hover:-translate-y-1 transform transition-transform">
@@ -88,32 +88,58 @@ const StoryPage: React.FC = () => {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-6">
+              <div className="glass p-6 rounded-xl mythical-border hover:shadow-lg transition-shadow duration-300 hover:-translate-y-1 transform transition-transform">
+                <div className="flex items-center mb-3 text-primary">
+                  <Scroll className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-semibold">Lore Expansion</h3>
+                </div>
+                <p className="text-muted-foreground">AI fills in historical events, myths, and world-building details to create a rich and immersive mythological universe.</p>
+              </div>
+              
+              <div className="glass p-6 rounded-xl mythical-border hover:shadow-lg transition-shadow duration-300 hover:-translate-y-1 transform transition-transform">
+                <div className="flex items-center mb-3 text-primary">
+                  <Users className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-semibold">NPC Backstories</h3>
+                </div>
+                <p className="text-muted-foreground">Generate deep, interconnected character backgrounds with realistic motivations that enhance your mythological narratives.</p>
+              </div>
+              
+              <div className="glass p-6 rounded-xl mythical-border hover:shadow-lg transition-shadow duration-300 hover:-translate-y-1 transform transition-transform">
+                <div className="flex items-center mb-3 text-primary">
+                  <MessageSquare className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-semibold">Dialogue Assistance</h3>
+                </div>
+                <p className="text-muted-foreground">Craft engaging NPC conversations with AI help to bring your mythological characters to life with authentic dialogue.</p>
+              </div>
+            </div>
+
             <div className="mt-12 p-6 glass rounded-xl mythical-border max-w-4xl mx-auto">
               <div className="flex items-center mb-4">
-                <Headphones className="h-5 w-5 text-primary mr-2" />
-                <h3 className="text-xl font-semibold">Audio Narration Tips</h3>
+                <Lightbulb className="h-5 w-5 text-primary mr-2" />
+                <h3 className="text-xl font-semibold">Creative Tips</h3>
               </div>
               
               <ul className="space-y-3 text-muted-foreground">
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Try different voices to find the perfect match for your mythological tale</span>
+                  <span>Use the quest generator to add adventure elements to your mythology</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Save stories with their narrations to build your personal mythology collection</span>
+                  <span>Combine character backstories with dialogue to create compelling NPCs</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Use the story arc view for better organization and a clearer narrative structure</span>
+                  <span>Expand the lore of your story to create a rich and detailed world</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Combine audio narration with scene visualization for a complete multimedia experience</span>
+                  <span>Save stories with their generated content to build your mythology collection</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Share your stories and narrations to inspire others with ancient mythological wisdom</span>
+                  <span>Share your stories and quests to inspire others with mythological adventures</span>
                 </li>
               </ul>
             </div>
