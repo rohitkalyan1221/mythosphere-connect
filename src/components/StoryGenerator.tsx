@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Bookmark, RefreshCcw, Gift, Volume2, Pause, Play, Mic, MicOff } from "lucide-react";
+import { Loader2, Sparkles, BookOpen, Image as ImageIcon, MessageSquare, Bookmark, RefreshCcw, Gift, Volume2, Pause, Play, BookX, Trash2 } from "lucide-react";
 import { generateStory, StoryPrompt, StoryResponse, StoryArc } from "@/lib/gemini";
 import { generateImage, StabilityResponse } from "@/lib/stability";
 import { toast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
 const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
@@ -65,115 +66,23 @@ const StoryGenerator: React.FC = () => {
   const [savedStories, setSavedStories] = useState<StoryResponse[]>(
     JSON.parse(localStorage.getItem('savedStories') || '[]')
   );
-  
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [recognitionSupported, setRecognitionSupported] = useState(false);
+  const [selectedSavedStory, setSelectedSavedStory] = useState<StoryResponse | null>(null);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null);
   
   const speechSynthesis = useRef<SpeechSynthesis | null>(null);
   const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
-  const recognition = useRef<SpeechRecognition | null>(null);
   
   useEffect(() => {
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      setRecognitionSupported(true);
-      
-      // Use the appropriate SpeechRecognition interface based on browser support
-      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognitionAPI) {
-        recognition.current = new SpeechRecognitionAPI();
-        recognition.current.continuous = true;
-        recognition.current.interimResults = true;
-        
-        recognition.current.onresult = (event) => {
-          const current = event.resultIndex;
-          const result = event.results[current];
-          const transcript = result[0].transcript;
-          
-          if (result.isFinal) {
-            setTranscript(prevTranscript => prevTranscript + ' ' + transcript);
-          }
-        };
-        
-        recognition.current.onerror = (event) => {
-          console.error('Speech recognition error', event.error);
-          setIsListening(false);
-          toast({
-            title: "Recognition Error",
-            description: `Error: ${event.error}`,
-            variant: "destructive",
-          });
-        };
-        
-        recognition.current.onend = () => {
-          if (isListening) {
-            recognition.current?.start();
-          }
-        };
-      }
-    }
-    
     if ('speechSynthesis' in window) {
       speechSynthesis.current = window.speechSynthesis;
     }
     
     return () => {
-      if (recognition.current) {
-        recognition.current.stop();
-      }
       if (speechSynthesis.current && speechUtterance.current) {
         speechSynthesis.current.cancel();
       }
     };
-  }, [isListening]);
-  
-  const toggleListening = () => {
-    if (!recognitionSupported) {
-      toast({
-        title: "Not Supported",
-        description: "Speech recognition is not supported in your browser",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (isListening) {
-      if (recognition.current) {
-        recognition.current.stop();
-      }
-      setIsListening(false);
-    } else {
-      setTranscript("");
-      if (recognition.current) {
-        recognition.current.start();
-      }
-      setIsListening(true);
-    }
-  };
-  
-  const useTranscriptAsPrompt = () => {
-    if (transcript.trim()) {
-      const mythologyMatch = mythologies.find(m => 
-        transcript.toLowerCase().includes(m.toLowerCase())
-      );
-      
-      const themeMatch = themes.find(t => 
-        transcript.toLowerCase().includes(t.toLowerCase())
-      );
-      
-      setStoryPrompt(prev => ({
-        ...prev,
-        mythology: mythologyMatch || prev.mythology,
-        theme: themeMatch || prev.theme,
-        character: transcript.trim()
-      }));
-      
-      toast({
-        title: "Prompt Updated",
-        description: "Your spoken text has been added to the story prompt",
-      });
-    }
-  };
+  }, []);
 
   const handleGenerate = async () => {
     const keyToUse = useCustomApiKey ? apiKey : DEFAULT_API_KEY;
@@ -220,10 +129,12 @@ const StoryGenerator: React.FC = () => {
   };
 
   const handleGenerateImage = async () => {
-    if (!generatedStory) {
+    const storyToUse = selectedSavedStory || generatedStory;
+    
+    if (!storyToUse) {
       toast({
         title: "No Story Found",
-        description: "Please generate a story first before creating an image",
+        description: "Please generate or select a story first before creating an image",
         variant: "destructive",
       });
       return;
@@ -244,7 +155,7 @@ const StoryGenerator: React.FC = () => {
     try {
       const imagePrompt = customImagePrompt.trim() !== "" 
         ? customImagePrompt
-        : `${generatedStory.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
+        : `${storyToUse.title}, ${storyPrompt.mythology} mythology, epic scene, dramatic lighting, detailed illustration`;
       
       console.log("Generating image with prompt:", imagePrompt);
       
@@ -285,10 +196,12 @@ const StoryGenerator: React.FC = () => {
   };
 
   const handleGenerateVoice = async () => {
-    if (!generatedStory) {
+    const storyToUse = selectedSavedStory || generatedStory;
+    
+    if (!storyToUse) {
       toast({
         title: "No Story Found",
-        description: "Please generate a story first before creating a narration",
+        description: "Please generate or select a story first before creating a narration",
         variant: "destructive",
       });
       return;
@@ -301,9 +214,9 @@ const StoryGenerator: React.FC = () => {
         setIsPlaying(false);
       }
       
-      const textToNarrate = showArcsView && generatedStory.storyArcs && generatedStory.storyArcs.length > 0
-        ? generatedStory.storyArcs.map(arc => `${arc.title}. ${arc.content}`).join(' ')
-        : generatedStory.story;
+      const textToNarrate = showArcsView && storyToUse.storyArcs && storyToUse.storyArcs.length > 0
+        ? storyToUse.storyArcs.map(arc => `${arc.title}. ${arc.content}`).join(' ')
+        : storyToUse.story;
         
       setVoiceProgress(50);
       
@@ -393,7 +306,8 @@ const StoryGenerator: React.FC = () => {
     if (!generatedStory) return;
     
     const storyToSave = {
-      ...generatedStory
+      ...generatedStory,
+      savedAt: new Date().toISOString()
     };
     
     const newSavedStories = [...savedStories, storyToSave];
@@ -406,13 +320,42 @@ const StoryGenerator: React.FC = () => {
     });
   };
 
-  const renderStoryContent = () => {
-    if (!generatedStory) return null;
+  const loadSavedStory = (story: StoryResponse) => {
+    setSelectedSavedStory(story);
+    setGeneratedImage(null); // Reset image when loading a new story
+    setCustomImagePrompt("");
+    
+    toast({
+      title: "Story Loaded",
+      description: `"${story.title}" has been loaded`,
+    });
+  };
 
-    if (showArcsView && generatedStory.storyArcs && generatedStory.storyArcs.length > 0) {
+  const deleteSavedStory = (index: number) => {
+    const newSavedStories = [...savedStories];
+    newSavedStories.splice(index, 1);
+    setSavedStories(newSavedStories);
+    localStorage.setItem('savedStories', JSON.stringify(newSavedStories));
+    
+    if (selectedSavedStory === savedStories[index]) {
+      setSelectedSavedStory(null);
+    }
+    
+    setConfirmDeleteIndex(null);
+    
+    toast({
+      title: "Story Deleted",
+      description: "The story has been removed from your collection",
+    });
+  };
+
+  const renderStoryContent = (story: StoryResponse | null) => {
+    if (!story) return null;
+
+    if (showArcsView && story.storyArcs && story.storyArcs.length > 0) {
       return (
         <Accordion type="single" collapsible className="w-full">
-          {generatedStory.storyArcs.map((arc, index) => (
+          {story.storyArcs.map((arc, index) => (
             <AccordionItem key={index} value={`arc-${index}`} className="border-b border-primary/10">
               <AccordionTrigger className="text-md font-medium hover:text-primary">
                 {arc.title}
@@ -430,7 +373,7 @@ const StoryGenerator: React.FC = () => {
 
     return (
       <div className="prose dark:prose-invert max-w-none">
-        {generatedStory.story.split('\n\n').map((paragraph, i) => (
+        {story.story.split('\n\n').map((paragraph, i) => (
           <p key={i} className="mb-4">{paragraph}</p>
         ))}
       </div>
@@ -450,7 +393,7 @@ const StoryGenerator: React.FC = () => {
       </CardHeader>
       
       <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-2 mx-6 my-2">
+        <TabsList className="grid grid-cols-3 mx-6 my-2">
           <TabsTrigger value="create" className="flex items-center gap-2">
             <RefreshCcw className="h-4 w-4" />
             Create Story
@@ -459,62 +402,14 @@ const StoryGenerator: React.FC = () => {
             <BookOpen className="h-4 w-4" />
             Read Story
           </TabsTrigger>
+          <TabsTrigger value="saved" className="flex items-center gap-2">
+            <Bookmark className="h-4 w-4" />
+            Saved Stories
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="create" className="p-0">
           <CardContent className="space-y-5 pt-6">
-            <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Mic className="h-5 w-5 text-primary" />
-                Voice Input
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Speak your story ideas</Label>
-                    <Button 
-                      variant={isListening ? "destructive" : "outline"} 
-                      size="sm"
-                      onClick={toggleListening}
-                      className="flex items-center gap-2"
-                      disabled={!recognitionSupported}
-                    >
-                      {isListening ? (
-                        <>
-                          <MicOff className="h-4 w-4" />
-                          Stop Listening
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="h-4 w-4" />
-                          Start Listening
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  <Textarea 
-                    placeholder={recognitionSupported ? "Your spoken text will appear here..." : "Speech recognition is not supported in your browser"}
-                    value={transcript}
-                    onChange={e => setTranscript(e.target.value)}
-                    className={`min-h-[100px] ${isListening ? 'border-primary' : ''}`}
-                  />
-                  
-                  {transcript && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={useTranscriptAsPrompt}
-                      className="self-end"
-                    >
-                      Use as Prompt
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-            
             <div className="bg-muted/40 rounded-lg p-4 border border-primary/10">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <Gift className="h-5 w-5 text-primary" />
@@ -911,7 +806,7 @@ const StoryGenerator: React.FC = () => {
                 
                 <div className="bg-card rounded-lg shadow-inner p-4 border border-accent/10">
                   <ScrollArea className="h-[350px] pr-4">
-                    {renderStoryContent()}
+                    {renderStoryContent(generatedStory)}
                   </ScrollArea>
                 </div>
               </motion.div>
@@ -921,9 +816,313 @@ const StoryGenerator: React.FC = () => {
                 <p>Generate a story first to read it here</p>
                 <Button 
                   variant="link"
+                  onClick={() => setActiveTab("create")}
                 >
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare className="h-5 w-5 mr-2" />
                   Generate Story
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </TabsContent>
+        
+        <TabsContent value="saved" className="p-0">
+          <CardContent className="pt-6">
+            {savedStories.length > 0 ? (
+              <div className="space-y-6">
+                {!selectedSavedStory ? (
+                  <>
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <Bookmark className="h-5 w-5 text-primary" />
+                      Your Saved Stories
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 gap-4">
+                      {savedStories.map((story, index) => (
+                        <div 
+                          key={index}
+                          className="flex justify-between items-center p-4 bg-muted/30 rounded-lg border border-primary/10 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg">{story.title}</h4>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {story.storyPrompt?.mythology && (
+                                <Badge variant="outline">{story.storyPrompt.mythology} Mythology</Badge>
+                              )}
+                              {story.storyPrompt?.theme && (
+                                <Badge variant="secondary" className="text-xs">{story.storyPrompt.theme}</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Saved: {new Date(story.savedAt || Date.now()).toLocaleDateString()}
+                            </p>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => loadSavedStory(story)}
+                            >
+                              <BookOpen className="h-4 w-4 mr-1" />
+                              Read
+                            </Button>
+                            
+                            <Dialog open={confirmDeleteIndex === index} onOpenChange={(open) => !open && setConfirmDeleteIndex(null)}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive border-destructive/20 hover:bg-destructive/10"
+                                  onClick={() => setConfirmDeleteIndex(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Delete Story</DialogTitle>
+                                  <DialogDescription>
+                                    Are you sure you want to delete "{story.title}"? This action cannot be undone.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="gap-2 sm:gap-0">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setConfirmDeleteIndex(null)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={() => deleteSavedStory(index)}
+                                  >
+                                    Delete
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex justify-between items-center border-b pb-4">
+                      <h3 className="text-2xl font-mythical text-primary">{selectedSavedStory.title}</h3>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedSavedStory(null)}
+                        >
+                          <BookX className="h-4 w-4 mr-1" />
+                          Back to List
+                        </Button>
+                        
+                        {isPlaying !== null && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            onClick={togglePlayPause}
+                          >
+                            {isPlaying ? (
+                              <>
+                                <Pause className="h-4 w-4" />
+                                Pause
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4" />
+                                Play
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-muted/30 rounded-lg p-4 flex flex-wrap gap-2">
+                      {selectedSavedStory.storyPrompt?.mythology && (
+                        <Badge>{selectedSavedStory.storyPrompt.mythology} Mythology</Badge>
+                      )}
+                      {selectedSavedStory.storyPrompt?.theme && (
+                        <Badge variant="outline">{selectedSavedStory.storyPrompt.theme}</Badge>
+                      )}
+                      {selectedSavedStory.storyPrompt?.character && (
+                        <Badge variant="secondary">{selectedSavedStory.storyPrompt.character}</Badge>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 mb-6 p-4 bg-muted/30 rounded-lg border border-primary/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold flex items-center gap-2">
+                          <Volume2 className="h-4 w-4 text-primary" />
+                          Generate Voice Narration
+                        </h3>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Label htmlFor="narration-voice" className="min-w-[80px]">Voice:</Label>
+                          <Select
+                            value={selectedVoice}
+                            onValueChange={setSelectedVoice}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue placeholder="Select a voice" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {voices.map((voice) => (
+                                <SelectItem key={voice.id} value={voice.id}>
+                                  {voice.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      {voiceProgress > 0 && <Progress value={voiceProgress} className="h-2" />}
+                      
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={handleGenerateVoice}
+                          disabled={voiceLoading}
+                          variant="secondary"
+                          className="w-full sm:w-auto"
+                        >
+                          {voiceLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating Narration...
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="mr-2 h-4 w-4" />
+                              Generate Audio Narration
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {generatedImage ? (
+                      <div className="relative rounded-md overflow-hidden aspect-[16/9] mb-6 shadow-lg">
+                        <img 
+                          src={generatedImage} 
+                          alt={selectedSavedStory.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                          <p className="text-sm text-white font-medium">
+                            Scene from "{selectedSavedStory.title}"
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 mb-6 p-4 bg-muted/30 rounded-lg border border-primary/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold flex items-center gap-2">
+                            <ImageIcon className="h-4 w-4 text-primary" />
+                            Visualize Scene
+                          </h3>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Textarea
+                            placeholder="Describe a scene from your story you'd like to visualize..."
+                            value={customImagePrompt}
+                            onChange={(e) => setCustomImagePrompt(e.target.value)}
+                            className="resize-none"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Describe the scene you want to visualize, or leave empty to generate based on the story
+                          </p>
+                        </div>
+                        
+                        <div className="flex justify-center">
+                          <Button
+                            onClick={handleGenerateImage}
+                            disabled={imageLoading}
+                            variant="secondary"
+                            className="w-full sm:w-auto"
+                          >
+                            {imageLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating Scene...
+                              </>
+                            ) : (
+                              <>
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                Generate Scene Image
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {isPlaying !== null && (
+                      <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={`rounded-full ${isPlaying ? 'bg-primary text-white' : ''}`}
+                            onClick={togglePlayPause}
+                          >
+                            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                          </Button>
+                          <div>
+                            <p className="text-sm font-medium">Audio Narration</p>
+                            <p className="text-xs text-muted-foreground">
+                              {isPlaying ? "Playing..." : "Paused"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Voice: {voices.find(v => v.id === selectedVoice)?.name || "Default"}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedSavedStory.storyArcs && selectedSavedStory.storyArcs.length > 0 && (
+                      <div className="flex items-center justify-end space-x-2 mb-4">
+                        <Label htmlFor="show-arcs" className="text-sm">Show as Story Arcs</Label>
+                        <Switch
+                          id="show-arcs"
+                          checked={showArcsView}
+                          onCheckedChange={setShowArcsView}
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="bg-card rounded-lg shadow-inner p-4 border border-accent/10">
+                      <ScrollArea className="h-[350px] pr-4">
+                        {renderStoryContent(selectedSavedStory)}
+                      </ScrollArea>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-10 text-muted-foreground bg-muted/30 rounded-lg">
+                <Bookmark className="h-10 w-10 mx-auto mb-4 opacity-50" />
+                <p>You don't have any saved stories yet</p>
+                <Button 
+                  variant="link"
+                  onClick={() => setActiveTab("create")}
+                >
+                  <RefreshCcw className="h-5 w-5 mr-2" />
+                  Create Your First Story
                 </Button>
               </div>
             )}
