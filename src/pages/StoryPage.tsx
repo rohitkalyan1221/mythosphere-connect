@@ -107,10 +107,10 @@ const StoryPage: React.FC = () => {
               
               <div className="glass p-6 rounded-xl mythical-border hover:shadow-lg transition-shadow duration-300 hover:-translate-y-1 transform transition-transform">
                 <div className="flex items-center mb-3 text-primary">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  <h3 className="text-lg font-semibold">Dialogue Assistance</h3>
+                  <Volume2 className="h-5 w-5 mr-2" />
+                  <h3 className="text-lg font-semibold">Voice Narration</h3>
                 </div>
-                <p className="text-muted-foreground">Craft engaging NPC conversations with AI help to bring your mythological characters to life with authentic dialogue.</p>
+                <p className="text-muted-foreground">Bring your stories to life with multiple voice options including female and male narrators for an immersive audio experience.</p>
               </div>
             </div>
 
@@ -135,7 +135,7 @@ const StoryPage: React.FC = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>
-                  <span>Save stories with their generated content to build your mythology collection</span>
+                  <span>Listen to your stories with different voice narrators for different characters</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary mr-2">•</span>

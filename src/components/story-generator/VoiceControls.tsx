@@ -15,14 +15,15 @@ interface VoiceControlsProps {
 
 const voices = [
   { id: "default", name: "Default" },
-  { id: "female", name: "Female" },
-  { id: "male", name: "Male" }
+  { id: "female", name: "Female - Aria" },
+  { id: "female2", name: "Female - Sarah" },
+  { id: "male", name: "Male - Roger" }
 ];
 
 export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsView }) => {
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<string>("default");
+  const [selectedVoice, setSelectedVoice] = useState<string>("female");
   const [voiceProgress, setVoiceProgress] = useState<number>(0);
   
   const speechSynthesis = useRef<SpeechSynthesis | null>(null);
@@ -73,10 +74,24 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsVie
           
           switch (selectedVoice) {
             case 'female':
-              selectedSynthVoice = voices.find(voice => voice.name.includes('female') || voice.name.includes('woman'));
+              selectedSynthVoice = voices.find(voice => 
+                voice.name.includes('female') || 
+                voice.name.includes('woman') || 
+                voice.name.includes('Samantha') || 
+                voice.name.includes('Victoria'));
+              break;
+            case 'female2':
+              selectedSynthVoice = voices.find(voice => 
+                voice.name.includes('Karen') || 
+                voice.name.includes('Tessa') || 
+                voice.name.includes('Moira'));
               break;
             case 'male':
-              selectedSynthVoice = voices.find(voice => voice.name.includes('male') || voice.name.includes('man'));
+              selectedSynthVoice = voices.find(voice => 
+                voice.name.includes('male') || 
+                voice.name.includes('man') || 
+                voice.name.includes('Daniel') || 
+                voice.name.includes('Tom'));
               break;
             default:
               selectedSynthVoice = voices[0];
