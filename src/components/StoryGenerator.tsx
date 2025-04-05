@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,36 +78,39 @@ const StoryGenerator: React.FC = () => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       setRecognitionSupported(true);
       
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition.current = new SpeechRecognition();
-      recognition.current.continuous = true;
-      recognition.current.interimResults = true;
-      
-      recognition.current.onresult = (event) => {
-        const current = event.resultIndex;
-        const result = event.results[current];
-        const transcript = result[0].transcript;
+      // Use the appropriate SpeechRecognition interface based on browser support
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognitionAPI) {
+        recognition.current = new SpeechRecognitionAPI();
+        recognition.current.continuous = true;
+        recognition.current.interimResults = true;
         
-        if (result.isFinal) {
-          setTranscript(prevTranscript => prevTranscript + ' ' + transcript);
-        }
-      };
-      
-      recognition.current.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
-        setIsListening(false);
-        toast({
-          title: "Recognition Error",
-          description: `Error: ${event.error}`,
-          variant: "destructive",
-        });
-      };
-      
-      recognition.current.onend = () => {
-        if (isListening) {
-          recognition.current?.start();
-        }
-      };
+        recognition.current.onresult = (event) => {
+          const current = event.resultIndex;
+          const result = event.results[current];
+          const transcript = result[0].transcript;
+          
+          if (result.isFinal) {
+            setTranscript(prevTranscript => prevTranscript + ' ' + transcript);
+          }
+        };
+        
+        recognition.current.onerror = (event) => {
+          console.error('Speech recognition error', event.error);
+          setIsListening(false);
+          toast({
+            title: "Recognition Error",
+            description: `Error: ${event.error}`,
+            variant: "destructive",
+          });
+        };
+        
+        recognition.current.onend = () => {
+          if (isListening) {
+            recognition.current?.start();
+          }
+        };
+      }
     }
     
     if ('speechSynthesis' in window) {
