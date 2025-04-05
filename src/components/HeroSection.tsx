@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -30,10 +31,6 @@ const HeroSection: React.FC = () => {
   }, []);
 
   const handleStartCreating = () => {
-    navigate('/stories');
-  };
-
-  const handleExploreMythology = () => {
     navigate('/stories');
   };
 
@@ -97,14 +94,6 @@ const HeroSection: React.FC = () => {
               className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
             >
               Start Creating
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              onClick={handleExploreMythology}
-              className="border-primary hover:bg-primary/10"
-            >
-              Explore Mythology
             </Button>
           </div>
         </motion.div>

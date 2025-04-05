@@ -4,7 +4,6 @@ import { motion, useAnimation } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import HeroSection from '../components/HeroSection';
-import ExplorerSection from '../components/ExplorerSection';
 import CommunitySection from '../components/CommunitySection';
 import Footer from '../components/Footer';
 import { Sparkles, Brain, Palette, Globe, BookOpen } from 'lucide-react';
@@ -106,7 +105,6 @@ const Index: React.FC = () => {
           </div>
         </section>
         
-        <ExplorerSection />
         <CommunitySection />
       </main>
       
