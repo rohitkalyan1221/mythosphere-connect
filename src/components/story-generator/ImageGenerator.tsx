@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +6,7 @@ import { generateImage } from "@/lib/stability";
 import { StoryResponse } from "@/lib/gemini";
 import { toast } from "@/hooks/use-toast";
 
-const DEFAULT_STABILITY_KEY = "sk-xqnIAFadjtu4CGLww0ZG0wII3DfZ6VCwVWAWxU8oRFYsyR2A";
+const DEFAULT_STABILITY_KEY = "sk-Uy7gMY5fbl3jv2UwIe8LNwh20ApGB9tOfEhSQhRxDellbUmq";
 
 interface ImageGeneratorProps {
   story: StoryResponse;
