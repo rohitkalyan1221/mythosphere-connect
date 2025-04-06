@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
 import StoryGenerator from '../components/story-generator/StoryGenerator';
-import { Scroll, BookOpen, Feather, Sparkles, Lightbulb, Compass, Users, MessageSquare } from 'lucide-react';
+import { Scroll, BookOpen, Feather, Sparkles, Lightbulb, Compass, Users, MessageSquare, Volume2 } from 'lucide-react';
 
 const StoryPage: React.FC = () => {
   return (
