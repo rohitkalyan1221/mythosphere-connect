@@ -24,13 +24,6 @@ const themes = [
   "Underworld", "Trickery", "Justice", "Hubris", "Fate"
 ];
 
-const voices = [
-  { id: "default", name: "Default" },
-  { id: "female", name: "Female - Aria" },
-  { id: "female2", name: "Female - Sarah" },
-  { id: "male", name: "Male - Roger" }
-];
-
 interface StoryFormProps {
   setGeneratedStory: React.Dispatch<React.SetStateAction<StoryResponse | null>>;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
@@ -38,7 +31,6 @@ interface StoryFormProps {
 
 export const StoryForm: React.FC<StoryFormProps> = ({ setGeneratedStory, setActiveTab }) => {
   const [loading, setLoading] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<string>("female");
   const [storyPrompt, setStoryPrompt] = useState<StoryPrompt>({
     mythology: "Greek",
     character: "",
@@ -172,24 +164,11 @@ export const StoryForm: React.FC<StoryFormProps> = ({ setGeneratedStory, setActi
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="voice">Narrator Voice</Label>
-              <Select
-                value={selectedVoice}
-                onValueChange={setSelectedVoice}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a voice" />
-                </SelectTrigger>
-                <SelectContent>
-                  {voices.map((voice) => (
-                    <SelectItem key={voice.id} value={voice.id}>
-                      {voice.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <p className="text-sm">
+                Your story will be narrated with a male voice (Roger)
+              </p>
               <p className="text-xs text-muted-foreground">
-                Choose a voice for your story narration
+                Audio narration will be available after generating your story
               </p>
             </div>
           </div>

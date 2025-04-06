@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Volume2, Pause, Play } from "lucide-react";
 import { StoryResponse } from "@/lib/gemini";
@@ -13,17 +12,9 @@ interface VoiceControlsProps {
   showArcsView: boolean;
 }
 
-const voices = [
-  { id: "default", name: "Default" },
-  { id: "female", name: "Female - Aria" },
-  { id: "female2", name: "Female - Sarah" },
-  { id: "male", name: "Male - Roger" }
-];
-
 export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsView }) => {
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<string>("female");
   const [voiceProgress, setVoiceProgress] = useState<number>(0);
   
   const speechSynthesis = useRef<SpeechSynthesis | null>(null);
@@ -70,32 +61,11 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsVie
         const voices = speechSynthesis.current.getVoices();
         
         if (voices.length > 0) {
-          let selectedSynthVoice;
-          
-          switch (selectedVoice) {
-            case 'female':
-              selectedSynthVoice = voices.find(voice => 
-                voice.name.includes('female') || 
-                voice.name.includes('woman') || 
-                voice.name.includes('Samantha') || 
-                voice.name.includes('Victoria'));
-              break;
-            case 'female2':
-              selectedSynthVoice = voices.find(voice => 
-                voice.name.includes('Karen') || 
-                voice.name.includes('Tessa') || 
-                voice.name.includes('Moira'));
-              break;
-            case 'male':
-              selectedSynthVoice = voices.find(voice => 
-                voice.name.includes('male') || 
-                voice.name.includes('man') || 
-                voice.name.includes('Daniel') || 
-                voice.name.includes('Tom'));
-              break;
-            default:
-              selectedSynthVoice = voices[0];
-          }
+          const selectedSynthVoice = voices.find(voice => 
+            voice.name.includes('male') || 
+            voice.name.includes('man') || 
+            voice.name.includes('Daniel') || 
+            voice.name.includes('Tom'));
           
           if (selectedSynthVoice) {
             speechUtterance.current.voice = selectedSynthVoice;
@@ -129,7 +99,7 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsVie
       
       toast({
         title: "Narration Created",
-        description: "Your mythological story is being narrated",
+        description: "Your mythological story is being narrated with a male voice",
       });
     } catch (error) {
       console.error("Failed to generate voice narration:", error);
@@ -171,23 +141,9 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsVie
         </div>
         
         <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Label htmlFor="narration-voice" className="min-w-[80px]">Voice:</Label>
-            <Select
-              value={selectedVoice}
-              onValueChange={setSelectedVoice}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select a voice" />
-              </SelectTrigger>
-              <SelectContent>
-                {voices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id}>
-                    {voice.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center">
+            <Label className="min-w-[80px]">Voice:</Label>
+            <span className="text-sm">Male - Roger (Default)</span>
           </div>
         </div>
         
@@ -234,7 +190,7 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({ story, showArcsVie
             </div>
           </div>
           <div className="text-xs text-muted-foreground">
-            Voice: {voices.find(v => v.id === selectedVoice)?.name || "Default"}
+            Voice: Male - Roger
           </div>
         </div>
       )}
