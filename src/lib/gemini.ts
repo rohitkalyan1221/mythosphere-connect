@@ -74,7 +74,10 @@ export async function generateStory(
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Error generating story");
+      if (response.status === 429) {
+        throw new Error("API quota exceeded. The free Gemini API has reached its daily limit. Please try again later or upgrade your API plan.");
+      }
+      throw new Error(error.error?.message || error.message || "Error generating story");
     }
 
     const data = await response.json();
