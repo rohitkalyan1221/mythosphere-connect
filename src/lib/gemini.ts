@@ -29,27 +29,87 @@ export async function generateStory(
   prompt: StoryPrompt
 ): Promise<StoryResponse> {
   try {
-    // Use Supabase edge function instead of direct Gemini API
-    const response = await fetch('/functions/v1/generate-story', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(prompt),
-    });
+    if (!apiKey) {
+      throw new Error("API key is required");
+    }
+    
+    // Enhanced prompt requesting structured story with arcs
+    const mythologyPrompt = `Create a ${prompt.length || "medium"} mythological story from ${
+      prompt.mythology
+    } mythology${prompt.character ? ` featuring ${prompt.character}` : ""}${
+      prompt.theme ? ` with themes of ${prompt.theme}` : ""
+    }. 
+    
+    Format the response as a JSON object with the following fields:
+    - 'title': a compelling title for the story
+    - 'story': the complete narrative text
+    - 'storyArcs': an array of story sections/arcs, where each arc has a 'title' and 'content' field
+    
+    Divide the story into 3-5 meaningful arcs or chapters. Keep the tone authentic to the cultural context.`;
+    
+    const response = await fetch(
+      `${API_URL}?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: mythologyPrompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Error generating story");
+      if (response.status === 429) {
+        throw new Error("API quota exceeded. The free Gemini API has reached its daily limit. Please try again later or upgrade your API plan.");
+      }
+      throw new Error(error.error?.message || error.message || "Error generating story");
     }
 
     const data = await response.json();
-    return {
-      title: data.title,
-      story: data.story,
-      storyArcs: data.storyArcs || [],
-      storyPrompt: prompt
-    };
+    const text = data.candidates[0].content.parts[0].text;
+    
+    try {
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const storyData = JSON.parse(jsonMatch[0]);
+        return {
+          title: storyData.title || "Untitled Story",
+          story: storyData.story || text,
+          storyArcs: storyData.storyArcs || [],
+          storyPrompt: prompt  // Include the original prompt in the response
+        };
+      } else {
+        // Fallback if no JSON is found
+        return {
+          title: "Mythological Tale",
+          story: text,
+          storyPrompt: prompt  // Include the original prompt in the response
+        };
+      }
+    } catch (parseError) {
+      console.error("Failed to parse JSON from Gemini response:", parseError);
+      return {
+        title: "Mythological Tale",
+        story: text,
+        storyPrompt: prompt  // Include the original prompt in the response
+      };
+    }
   } catch (error) {
     console.error("Error generating story:", error);
     toast({
@@ -61,7 +121,7 @@ export async function generateStory(
       title: "",
       story: "",
       error: error instanceof Error ? error.message : "Unknown error occurred",
-      storyPrompt: prompt
+      storyPrompt: prompt  // Include the original prompt in the response
     };
   }
 }
