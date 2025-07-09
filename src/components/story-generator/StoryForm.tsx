@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { generateStory, StoryPrompt, StoryResponse } from "@/lib/gemini";
 import { toast } from "@/hooks/use-toast";
 
-const DEFAULT_API_KEY = "AIzaSyDh9F57_FwugkK3-dV3caqphtbI9yDaXYI";
+const DEFAULT_API_KEY = "AIzaSyDb2x5nwcCoOdntz4z_J9K2whOg0PNu6cE";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
