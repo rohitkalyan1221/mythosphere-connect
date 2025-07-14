@@ -7,10 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles, Gift, Volume2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { generateStory, StoryPrompt, StoryResponse } from "@/lib/gemini";
+import { StoryPrompt, StoryResponse } from "@/lib/gemini";
 import { toast } from "@/hooks/use-toast";
-
-const DEFAULT_API_KEY = "AIzaSyDb2x5nwcCoOdntz4z_J9K2whOg0PNu6cE";
+import { supabase } from "@/integrations/supabase/client";
 
 const mythologies = [
   "Greek", "Norse", "Egyptian", "Celtic", "Japanese", 
@@ -41,16 +40,34 @@ export const StoryForm: React.FC<StoryFormProps> = ({ setGeneratedStory, setActi
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const story = await generateStory(DEFAULT_API_KEY, storyPrompt);
-      setGeneratedStory(story);
-      
-      if (story.error) {
+      const { data, error } = await supabase.functions.invoke('generate-story', {
+        body: { storyPrompt }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.error) {
         toast({
           title: "Generation Error",
-          description: story.error,
+          description: data.error,
           variant: "destructive",
         });
+        setGeneratedStory({ 
+          title: "", 
+          story: "", 
+          error: data.error, 
+          storyPrompt 
+        });
       } else {
+        const story: StoryResponse = {
+          title: data.title,
+          story: data.story,
+          storyArcs: data.storyArcs,
+          storyPrompt
+        };
+        setGeneratedStory(story);
         toast({
           title: "Story Generated",
           description: `"${story.title}" has been created successfully`,
